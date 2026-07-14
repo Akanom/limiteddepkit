@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "limiteddepkit"
+version = "0.1.0a1"
+description = "Limited-dependent-variable and microeconometric workflows for Python."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Oluwajuwon Mayomi Akanbi" }]
+maintainers = [{ name = "Oluwajuwon Mayomi Akanbi" }]
+keywords = [
+  "econometrics",
+  "limited dependent variables",
+  "binary regression",
+  "logit",
+  "probit",
+  "ordinal regression",
+  "ordered logit",
+  "ordered probit",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "numpy>=1.23",
+  "pandas>=1.5",
+  "scipy>=1.9",
+]
+
+[project.optional-dependencies]
+test = [
+  "matplotlib>=3.8",
+  "pytest>=8",
+  "ruff>=0.6",
+  "statsmodels>=0.14",
+  "universal-output-hub>=0.2.2",
+]
+dev = [
+  "build>=1.2",
+  "matplotlib>=3.8",
+  "pytest>=8",
+  "ruff>=0.6",
+  "statsmodels>=0.14",
+  "twine>=5",
+  "universal-output-hub>=0.2.2",
+]
+validation = ["statsmodels>=0.14"]
+plots = ["matplotlib>=3.8"]
+outputhub = ["universal-output-hub>=0.2.2"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+  "validation: numerical comparison against an external reference implementation",
+  "simulation: deterministic simulation or Monte Carlo recovery validation",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = ["_out_of_scope"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501", "UP045"]

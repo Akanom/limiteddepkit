@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use limiteddepkit in research, please cite the software and the exact version used."
+type: software
+title: "limiteddepkit: Limited-dependent-variable models for Python"
+abstract: >-
+  A developing Python toolkit for limited-dependent-variable econometrics,
+  with a binary-and-ordinal alpha as its first release candidate.
+authors:
+  - family-names: Akanbi
+    given-names: "Oluwajuwon Mayomi"
+version: 0.1.0a1
+license: MIT
