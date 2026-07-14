@@ -15,6 +15,7 @@ from scipy.stats import norm
 from .binary import (
     _binary_ame_inference,
     _binary_margins,
+    _has_separation,
     _invert_information,
     _validate_fit_data,
     _validate_prediction_data,
@@ -175,6 +176,11 @@ class BinaryProbit:
         if not np.isfinite(tolerance) or tolerance <= 0.0:
             raise ValueError("tolerance must be finite and positive.")
         design, feature_names, outcomes = _validate_fit_data(X, y)
+        if _has_separation(design, outcomes):
+            raise ValueError(
+                "The data exhibit complete or quasi-complete separation; a finite "
+                "unpenalized maximum-likelihood estimate does not exist."
+            )
         signs = 2.0 * outcomes - 1.0
 
         def negative_loglike(beta: np.ndarray) -> float:

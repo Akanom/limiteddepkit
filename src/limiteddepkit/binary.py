@@ -12,6 +12,7 @@ from scipy.optimize import linprog, minimize
 from scipy.special import expit
 from scipy.stats import norm
 
+from ._irls import damped_newton
 from .ordinal import _as_2d_array, _numerical_jacobian
 
 
@@ -37,11 +38,6 @@ def _validate_fit_data(X: Any, y: Any) -> tuple[np.ndarray, list[str], np.ndarra
         raise ValueError("Binary-response inference requires more observations than regressors.")
     if np.linalg.matrix_rank(design) < design.shape[1]:
         raise ValueError("X is rank deficient; binary-response parameters are not identified.")
-    if _has_separation(design, outcomes):
-        raise ValueError(
-            "The data exhibit complete or quasi-complete separation; a finite "
-            "unpenalized maximum-likelihood estimate does not exist."
-        )
     return design, feature_names, outcomes
 
 
@@ -49,29 +45,65 @@ def _has_separation(design: np.ndarray, outcomes: np.ndarray) -> bool:
     """Return whether a nonzero direction weakly separates the two classes.
 
     With a full-column-rank design, separation exists exactly when a nonzero
-    vector ``b`` satisfies ``(2*y - 1) * X @ b >= 0``.  The homogeneous system
-    is checked by scaling each coefficient to either +1 or -1 in turn.
+    vector ``b`` satisfies ``(2*y - 1) * X @ b >= 0``.  One linear program
+    maximizes the total signed margin subject to an L1-normalized direction.
+    Full column rank means a nonzero feasible direction must have at least one
+    strictly positive margin, so a positive optimum identifies complete or
+    quasi-complete separation without solving one program per coefficient.
     """
-    signed_design = (2.0 * outcomes - 1.0)[:, None] * design
-    constraints = -signed_design
-    right_hand_side = np.zeros(design.shape[0], dtype=float)
-    objective = np.zeros(design.shape[1], dtype=float)
-    for column in range(design.shape[1]):
-        for sign in (-1.0, 1.0):
-            bounds: list[tuple[float | None, float | None]] = [
-                (None, None) for _ in range(design.shape[1])
-            ]
-            bounds[column] = (1.0, None) if sign > 0 else (None, -1.0)
-            feasibility = linprog(
-                objective,
-                A_ub=constraints,
-                b_ub=right_hand_side,
-                bounds=bounds,
-                method="highs",
-            )
-            if feasibility.success:
-                return True
-    return False
+    column_scale = np.max(np.abs(design), axis=0)
+    normalized_design = design / column_scale
+    signed_design = (2.0 * outcomes - 1.0)[:, None] * normalized_design
+    n_features = design.shape[1]
+    # beta = beta_positive - beta_negative, both components non-negative.
+    constraints = np.block(
+        [
+            [-signed_design, signed_design],
+            [np.ones((1, n_features)), np.ones((1, n_features))],
+        ]
+    )
+    upper = np.r_[np.zeros(design.shape[0]), 1.0]
+    signed_sum = signed_design.sum(axis=0)
+    objective = np.r_[-signed_sum, signed_sum]
+    solution = linprog(
+        objective,
+        A_ub=constraints,
+        b_ub=upper,
+        bounds=[(0.0, None)] * (2 * n_features),
+        method="highs",
+    )
+    numerical_tolerance = 100.0 * np.finfo(float).eps * max(design.shape)
+    return bool(solution.success and -float(solution.fun) > numerical_tolerance)
+
+
+def _has_finite_mle_certificate(
+    design: np.ndarray,
+    outcomes: np.ndarray,
+    coefficients: np.ndarray,
+) -> bool:
+    """Return a fast numerical certificate that the binary MLE is finite.
+
+    At a finite Logit optimum, the strictly positive vector with entries
+    ``1 - p`` for events and ``p`` for non-events satisfies
+    ``((2*y - 1) * X).T @ weights == 0``.  This is the alternative-system
+    certificate for absence of complete or quasi-complete separation.  Fits
+    with probabilities too close to the boundary use the exact LP check
+    instead, preserving the strict separation contract for difficult data.
+    """
+    probabilities = expit(design @ coefficients)
+    certificate_weights = np.where(outcomes == 1.0, 1.0 - probabilities, probabilities)
+    if (
+        not np.isfinite(certificate_weights).all()
+        or float(np.min(certificate_weights)) <= 1e-7
+    ):
+        return False
+    column_scale = np.max(np.abs(design), axis=0)
+    normalized_design = design / column_scale
+    residual = normalized_design.T @ (probabilities - outcomes)
+    return bool(
+        np.isfinite(residual).all()
+        and float(np.linalg.norm(residual, ord=np.inf)) <= 1e-8
+    )
 
 
 def _validate_prediction_data(
@@ -368,14 +400,38 @@ class BinaryLogit:
         def gradient(beta: np.ndarray) -> np.ndarray:
             return design.T @ (expit(design @ beta) - outcomes)
 
-        optimizer_result = minimize(
+        def information_at(beta: np.ndarray) -> np.ndarray:
+            probabilities = expit(design @ beta)
+            weights = probabilities * (1.0 - probabilities)
+            return design.T @ (weights[:, None] * design)
+
+        optimizer_result = damped_newton(
             negative_loglike,
+            gradient,
+            information_at,
             np.zeros(design.shape[1], dtype=float),
-            jac=gradient,
-            method="BFGS",
-            options={"maxiter": int(maxiter), "gtol": tolerance},
+            maxiter=int(maxiter),
+            tolerance=float(tolerance),
         )
+        if not optimizer_result.success:
+            optimizer_result = minimize(
+                negative_loglike,
+                np.asarray(optimizer_result.x, dtype=float),
+                jac=gradient,
+                method="BFGS",
+                options={"maxiter": int(maxiter), "gtol": tolerance},
+            )
         score_norm = float(np.max(np.abs(gradient(optimizer_result.x))))
+        finite_mle_certified = _has_finite_mle_certificate(
+            design,
+            outcomes,
+            np.asarray(optimizer_result.x, dtype=float),
+        )
+        if not finite_mle_certified and _has_separation(design, outcomes):
+            raise ValueError(
+                "The data exhibit complete or quasi-complete separation; a finite "
+                "unpenalized maximum-likelihood estimate does not exist."
+            )
         converged = bool(
             optimizer_result.success or score_norm <= max(10.0 * tolerance, 1e-7)
         )

@@ -11,6 +11,7 @@ from scipy.optimize import minimize
 from scipy.special import gammaln
 from scipy.stats import norm
 
+from ._irls import damped_newton
 from .ordinal import _as_2d_array
 
 
@@ -63,7 +64,14 @@ class PoissonResult:
 class PoissonRegressor:
     """Poisson regression estimated by maximum likelihood."""
 
-    def fit(self, X: Any, y: Any, *, maxiter: int = 300) -> PoissonResult:
+    def fit(
+        self,
+        X: Any,
+        y: Any,
+        *,
+        maxiter: int = 300,
+        tolerance: float = 1e-8,
+    ) -> PoissonResult:
         design, feature_names = _as_2d_array(X)
         counts = np.asarray(y, dtype=float).reshape(-1)
         if counts.size != design.shape[0]:
@@ -82,6 +90,8 @@ class PoissonRegressor:
             raise ValueError("X must have full column rank.")
         if maxiter <= 0:
             raise ValueError("maxiter must be positive.")
+        if not np.isfinite(tolerance) or tolerance <= 0.0:
+            raise ValueError("tolerance must be finite and positive.")
 
         def negative_loglike(beta: np.ndarray) -> float:
             eta = design @ beta
@@ -97,14 +107,30 @@ class PoissonRegressor:
                 return np.full(beta.shape, 1e300)
             return design.T @ (np.exp(eta) - counts)
 
+        def information_at(beta: np.ndarray) -> np.ndarray:
+            eta = design @ beta
+            if np.max(eta) > 709.0:
+                return np.full((beta.size, beta.size), np.nan)
+            mean = np.exp(eta)
+            return design.T @ (mean[:, None] * design)
+
         initial = np.zeros(design.shape[1], dtype=float)
-        optimizer_result = minimize(
+        optimizer_result = damped_newton(
             negative_loglike,
+            gradient,
+            information_at,
             initial,
-            method="BFGS",
-            jac=gradient,
-            options={"maxiter": maxiter},
+            maxiter=int(maxiter),
+            tolerance=float(tolerance),
         )
+        if not optimizer_result.success:
+            optimizer_result = minimize(
+                negative_loglike,
+                np.asarray(optimizer_result.x, dtype=float),
+                method="BFGS",
+                jac=gradient,
+                options={"maxiter": maxiter, "gtol": tolerance},
+            )
         coefficients = np.asarray(optimizer_result.x, dtype=float)
         fitted_mean = np.exp(design @ coefficients)
         information = design.T @ (fitted_mean[:, None] * design)

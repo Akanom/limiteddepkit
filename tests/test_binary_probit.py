@@ -79,6 +79,20 @@ def test_binary_probit_rejects_separation_and_invalid_optimizer_options():
         BinaryProbit().fit(X, y, tolerance=0.0)
 
 
+@pytest.mark.parametrize("scale", [1e-8, 1.0, 1e8])
+def test_binary_probit_separation_check_is_scale_invariant(scale):
+    X = pd.DataFrame(
+        {
+            "const": 1.0,
+            "x": scale * np.array([-3.0, -2.0, -1.0, 1.0, 2.0, 3.0]),
+        }
+    )
+    y = np.array([0, 0, 0, 1, 1, 1])
+
+    with pytest.raises(ValueError, match="separation"):
+        BinaryProbit().fit(X, y, tolerance=0.1)
+
+
 def test_binary_probit_prediction_contract_and_extreme_indices(fitted_probit):
     X, _, result = fitted_probit
     with pytest.raises(ValueError, match="columns must match"):

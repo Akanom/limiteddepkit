@@ -4,6 +4,7 @@ import importlib.util
 
 import limiteddepkit
 import limiteddepkit.experimental as experimental
+import limiteddepkit.ml as ml
 
 STABLE_BINARY_EXPORTS = {
     "BinaryLogit",
@@ -21,6 +22,8 @@ PROVISIONAL_EXPORTS = {
     "DiscreteTimeDurationResult",
     "ExponentialDuration",
     "ExponentialDurationResult",
+    "FirthBinaryLogit",
+    "FirthBinaryLogitResult",
     "GammaDuration",
     "GammaDurationResult",
     "HurdlePoisson",
@@ -33,6 +36,10 @@ PROVISIONAL_EXPORTS = {
     "NegativeBinomialResult",
     "PoissonRegressor",
     "PoissonResult",
+    "RidgeBinaryLogit",
+    "RidgeBinaryLogitResult",
+    "RidgeOrderedLogit",
+    "RidgeOrderedLogitResult",
     "SampleSelection",
     "SampleSelectionResult",
     "SequentialLogit",
@@ -56,6 +63,25 @@ EXTRACTED_EXPORTS = {
     "TreatmentEffectResult",
 }
 
+ML_WORKFLOW_EXPORTS = {
+    "EntityHoldoutSplit",
+    "ForwardPanelSplit",
+    "GroupKFold",
+    "KFold",
+    "RepeatedStratifiedKFold",
+    "ResidualBinaryMLP",
+    "StratifiedGroupKFold",
+    "StratifiedKFold",
+    "binary_calibration_intercept_slope",
+    "compare_models",
+    "cross_validate",
+    "fit_censoring_distribution",
+    "nested_cross_validate",
+    "paired_bootstrap_interval",
+    "score_predictions",
+    "statsmodels_bridge",
+}
+
 
 def test_certified_binary_estimators_are_stable_root_exports():
     assert set(limiteddepkit.__all__) >= STABLE_BINARY_EXPORTS
@@ -71,6 +97,12 @@ def test_provisional_estimators_are_quarantined_from_package_root():
 def test_experimental_namespace_exports_every_provisional_estimator():
     assert set(experimental.__all__) == PROVISIONAL_EXPORTS
     assert all(hasattr(experimental, name) for name in PROVISIONAL_EXPORTS)
+
+
+def test_ml_workflow_is_public_only_from_its_experimental_submodule():
+    assert set(ml.__all__) >= ML_WORKFLOW_EXPORTS
+    assert all(hasattr(ml, name) for name in ML_WORKFLOW_EXPORTS)
+    assert ML_WORKFLOW_EXPORTS.isdisjoint(limiteddepkit.__all__)
 
 
 def test_extracted_estimators_are_absent_from_the_distribution_namespaces():

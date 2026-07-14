@@ -45,6 +45,7 @@ test = [
   "matplotlib>=3.8",
   "pytest>=8",
   "ruff>=0.6",
+  "scikit-learn>=1.4",
   "statsmodels>=0.14",
   "universal-output-hub>=0.2.2",
 ]
@@ -53,11 +54,13 @@ dev = [
   "matplotlib>=3.8",
   "pytest>=8",
   "ruff>=0.6",
+  "scikit-learn>=1.4",
   "statsmodels>=0.14",
   "twine>=5",
   "universal-output-hub>=0.2.2",
 ]
-validation = ["statsmodels>=0.14"]
+validation = ["scikit-learn>=1.4", "statsmodels>=0.14"]
+neural = ["torch>=2.2"]
 plots = ["matplotlib>=3.8"]
 outputhub = ["universal-output-hub>=0.2.2"]
 

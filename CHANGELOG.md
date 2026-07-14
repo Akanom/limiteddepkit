@@ -9,6 +9,31 @@ pre-release phase.
 
 ### Added
 
+- Experimental `limiteddepkit.ml` workflow with dependency-light iid,
+  stratified, complete-group, and forward-panel splitters; binary, multinomial,
+  ordinal, grouped-choice, count, continuous, quantile, duration, and selection
+  scores; out-of-fold predictions; and validity-gated model comparison.
+- Limited-data validation extensions: stratified complete-group splitting with an exact
+  MILP coverage fallback after greedy balancing, repeated splitters, fold-local
+  preprocessing, pooled/weighted OOF aggregation, paired fold differences,
+  observation/entity bootstrap intervals, and one-standard-error selection.
+- Leakage-safe nested cross-validation for estimator and ridge-penalty selection.
+- Held-out binary/ordinal calibration diagnostics with reliability tables, calibration
+  intercept/slope, and an explicit grouped Brier decomposition remainder.
+- Training-fold reverse-Kaplan-Meier censoring estimates with IPCW concordance,
+  time-dependent and integrated Brier scores, and cumulative/dynamic AUC.
+- Lazy optional bridges for scikit-learn, Statsmodels, and callback-driven external
+  estimators with explicit prediction semantics and no invented validity diagnostics.
+- Experimental Firth Binary Logit and ridge Binary/Ordered Logit estimators, with
+  separation, shrinkage, and aligned Statsmodels/scikit-learn numerical evidence.
+- Optional `[neural]` `ResidualBinaryMLP` advanced prediction challenger with an iid-only
+  internal validation split, conservative completion/stabilization diagnostics,
+  temperature scaling, and Monte Carlo dropout uncertainty output. All 21 neural tests
+  passed in an isolated Python 3.13/PyTorch 2.13.0 runtime, and an optional neural CI job
+  now maintains the path; no numerical-parity or inferential claim is made.
+- Optional scikit-learn validation gates for matching prediction metrics,
+  deterministic splitter contracts, and end-to-end held-out Binary Logit
+  probabilities against Statsmodels and unpenalized scikit-learn.
 - Pinned R 4.5.1 parity harness covering all eight stable binary and ordinal
   families on both controlled and public-data fixtures, with canonical
   covariance, fit, probability, metadata, report, and certificate exports.
@@ -17,6 +42,16 @@ pre-release phase.
 
 ### Changed
 
+- Documented explicit new-entity, known-entity future, and conditional panel
+  prediction targets, including chronology and dynamic-lag leakage guards.
+- Balanced stratified class remainders across folds so both total fold sizes and
+  within-class counts differ by at most one.
+- Replaced the common Binary Logit and Poisson optimization paths with analytical,
+  damped Newton/IRLS steps plus BFGS fallbacks; finite-MLE separation safeguards and
+  reference-package parameter parity remain enforced.
+- Clarified that experimental Firth/ridge estimators require `n > p` and full column
+  rank, and that native estimators require dense transformer output; sparse transformed
+  designs remain available only to downstream estimators that explicitly accept them.
 - Completed both maintained Stata 17 parity tracks with `gologit2` 3.2.8; all
   eight families pass all declared checks on the controlled and real-data
   suites.

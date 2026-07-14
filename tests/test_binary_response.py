@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 from scipy.special import expit
 
+import limiteddepkit.binary as binary_module
 from limiteddepkit import BinaryLogit
 
 
@@ -60,6 +61,21 @@ def test_binary_logit_covariance_is_inverse_analytical_information(fitted_logit)
     assert result.vcov() is not result.covariance
     assert list(result.summary_frame().columns) == ["coef", "std_err", "z", "p_value"]
     assert result.conf_int().shape == (X.shape[1], 2)
+
+
+def test_binary_logit_common_finite_mle_uses_fast_separation_certificate(
+    fitted_logit, monkeypatch
+):
+    X, y, _ = fitted_logit
+
+    def unexpected_exact_check(*_args, **_kwargs):
+        raise AssertionError("ordinary finite fits should not need the exact LP check")
+
+    monkeypatch.setattr(binary_module, "linprog", unexpected_exact_check)
+    result = BinaryLogit().fit(X, y)
+
+    assert result.converged
+    assert result.score_norm <= 1e-7
 
 
 def test_binary_logit_marginal_effects_match_probability_finite_differences(fitted_logit):
@@ -126,6 +142,23 @@ def test_binary_logit_rejects_complete_and_quasi_complete_separation(y):
     X = pd.DataFrame({"const": 1.0, "x": x})
     with pytest.raises(ValueError, match="separation"):
         BinaryLogit().fit(X, y)
+
+
+@pytest.mark.parametrize("scale", [1e-8, 1.0, 1e8])
+@pytest.mark.parametrize("tolerance", [1e-8, 0.1, 1.0])
+def test_binary_logit_separation_check_is_scale_and_tolerance_invariant(
+    scale, tolerance
+):
+    X = pd.DataFrame(
+        {
+            "const": 1.0,
+            "x": scale * np.array([-3.0, -2.0, -1.0, 1.0, 2.0, 3.0]),
+        }
+    )
+    y = np.array([0, 0, 0, 1, 1, 1])
+
+    with pytest.raises(ValueError, match="separation"):
+        BinaryLogit().fit(X, y, tolerance=tolerance)
 
 
 def test_binary_logit_validates_prediction_contract_and_threshold(fitted_logit):

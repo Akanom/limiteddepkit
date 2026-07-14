@@ -20,6 +20,14 @@ from ..tobit import Tobit, TobitResult
 from ..truncated_regression import TruncatedRegression, TruncatedRegressionResult
 from ..weibull_duration import WeibullDuration, WeibullDurationResult
 from ..zero_inflated_poisson import ZeroInflatedPoisson, ZeroInflatedPoissonResult
+from .small_sample import (
+    FirthBinaryLogit,
+    FirthBinaryLogitResult,
+    RidgeBinaryLogit,
+    RidgeBinaryLogitResult,
+    RidgeOrderedLogit,
+    RidgeOrderedLogitResult,
+)
 
 __all__ = [
     "CensoredQuantileRegression",
@@ -30,6 +38,8 @@ __all__ = [
     "DiscreteTimeDurationResult",
     "ExponentialDuration",
     "ExponentialDurationResult",
+    "FirthBinaryLogit",
+    "FirthBinaryLogitResult",
     "GammaDuration",
     "GammaDurationResult",
     "HurdlePoisson",
@@ -42,6 +52,10 @@ __all__ = [
     "NegativeBinomialResult",
     "PoissonRegressor",
     "PoissonResult",
+    "RidgeBinaryLogit",
+    "RidgeBinaryLogitResult",
+    "RidgeOrderedLogit",
+    "RidgeOrderedLogitResult",
     "SampleSelection",
     "SampleSelectionResult",
     "SequentialLogit",

@@ -34,6 +34,43 @@ contracts.
 5. **Claims remain model-specific.** Reference comparisons, deterministic recovery, and
    real-data applications provide different evidence and are reported separately.
 
+### What makes limiteddepkit distinct?
+
+The package is not positioned as a general panel-data platform or as a model-count
+catalogue. Its distinguishing feature is the combination of flexible ordinal
+specification, panel-aware probability inference, and auditable promotion evidence:
+
+- **Flexible ordinal models are part of the stable core.** Generalized Ordered Logit
+  allows every slope to vary across cumulative splits, while Partial Proportional Odds
+  varies only named regressors. Both retain ordered thresholds and enforce non-crossing
+  over the observed estimation support.
+- **Dynamic ordinal panels are treated as their own estimand.** The dynamic
+  random-effects model distinguishes lag-category state dependence, initial conditions,
+  correlated random effects, exact time continuity, and the observations that actually
+  enter the likelihood.
+- **Prediction targets are explicit.** Static panel models distinguish
+  population-average, conditional, and posterior random-effect predictions instead of
+  presenting them as interchangeable fitted values.
+- **Inference can refuse to overstate certainty.** Results expose convergence and
+  inference validity; flexible ordinal fits suppress ordinary Hessian inference when a
+  non-crossing boundary is active.
+- **Validation is native to limited outcomes.** The experimental `limiteddepkit.ml`
+  layer evaluates probabilities, counts, censored quantiles, durations, grouped choices,
+  and selection equations with outcome-appropriate losses, while keeping entities,
+  choice sets, and forecast time order intact.
+- **Certification and application evidence are separate.** The stable families have
+  deterministic Python guards plus controlled and real-data comparisons in both Stata
+  and R, with tolerances and evidence files committed to the repository.
+- **The stable/experimental boundary is deliberate.** A working likelihood is not enough
+  for promotion. Covariance, prediction, failure, documentation, and cross-software
+  contracts must also be ready.
+
+This makes `limiteddepkit` most useful when the research question depends on category
+ordering, proportional-odds restrictions, state dependence, initial conditions, or the
+choice between marginal and posterior panel probabilities. Broader count, duration,
+censoring, selection, and quantile estimators remain experimental until they satisfy the
+same standard.
+
 ## Quick user path
 
 Most users can start from the root namespace:
@@ -72,6 +109,7 @@ python -m pip install -e ".[validation]"  # Statsmodels comparisons
 python -m pip install -e ".[outputhub]"   # Universal Output Hub adapter
 python -m pip install -e ".[test]"        # full maintained test environment
 python -m pip install -e ".[dev]"         # test, lint, build, and twine tools
+python -m pip install "limiteddepkit[neural]"  # optional PyTorch neural challenger
 ```
 
 ## Stable alpha coverage
@@ -99,6 +137,7 @@ the stable API promise:
 
 | Family | Experimental coverage | Main promotion boundary |
 | --- | --- | --- |
+| Small-sample response | Firth Binary Logit; ridge Binary and Ordered Logit | Approximate penalized inference; profile Firth intervals and broader reference evidence remain |
 | Finite choice | Multinomial, Conditional, Sequential Logit | API, covariance, and failure contracts |
 | Counts | Poisson, NB2, zero-inflated, hurdle Poisson | Exposure/offset and covariance contracts |
 | Censoring/truncation | Tobit, truncated Gaussian, interval regression | Current Gaussian forms are narrow |
@@ -110,6 +149,67 @@ Experimental numerical tests are evidence, not promotion. Import those estimator
 their experimental paths and expect change. See
 [Experimental model status](docs/EXPERIMENTAL_MODELS.md).
 
+## Experimental probability-aware validation
+
+`limiteddepkit.ml` adds dependency-light splitters, outcome-aware scores,
+cross-validation, pooled/repeated out-of-fold predictions, paired uncertainty,
+calibration, censoring-aware duration metrics, nested tuning, and validity-gated model
+comparison around the existing econometric estimators. It is an experimental submodule,
+not part of the stable package-root API.
+
+```python
+from limiteddepkit import BinaryLogit, BinaryProbit
+from limiteddepkit.ml import StratifiedKFold, compare_models
+
+comparison = compare_models(
+    {"logit": BinaryLogit, "probit": BinaryProbit},
+    X_binary,
+    y_binary,
+    splitter=StratifiedKFold(5, shuffle=True, random_state=2026),
+    outcome="binary",
+)
+
+print(comparison.table)
+print(comparison.best_model)
+```
+
+The workflow uses proper probability scores, shares one materialized fold design across
+compared models, and excludes a model from ranking when any fold lacks convergence or
+valid ordinary inference. Complete-group, stratified-group, repeated, and forward-time
+splitters handle limited-data structures; fold-local transformers prevent preprocessing
+leakage. A transformer's output passed to a native `limiteddepkit` estimator must remain a
+dense numeric two-dimensional array or DataFrame with a compatible schema; sparse output
+is not part of the native estimator contract. Ridge penalties are selected only through
+nested CV, using a best-score or one-standard-error rule. Calibration and IPCW survival
+diagnostics operate on held-out predictions, and lazy bridges permit carefully aligned
+Statsmodels/scikit-learn or model-specific external comparisons without hard dependencies.
+Prediction quality complements identification and cross-software parity—it does not
+replace either. See [Probability-aware validation workflows](docs/ML_WORKFLOWS.md) for
+examples and exact estimand safeguards.
+
+### Optional residual neural prediction challenger
+
+Install the advanced nonlinear binary challenger with:
+
+```bash
+python -m pip install "limiteddepkit[neural]"
+```
+
+`ResidualBinaryMLP` uses compact residual GELU/LayerNorm blocks, dropout, AdamW,
+gradient clipping, training-partition standardization, deterministic internal validation,
+early stopping, and optional temperature scaling. It is deliberately prediction-only:
+its result sets `inference_valid=False`, so prediction comparisons must explicitly use
+`require_inference_valid=False`. It does not replace Binary Logit/Probit coefficient
+inference or the package's identification checks.
+
+The current neural trainer supports independent rows only and rejects `entity=` and
+`time=` because its internal split is iid-stratified. Architecture, penalty, dropout, and
+other model-selection choices belong inside `nested_cross_validate`; reported outer folds
+must remain untouched. Temperature fitting reuses the internal early-stopping partition,
+so its calibrated validation loss is tuning evidence, not an independent performance
+estimate. Monte Carlo-dropout probability bands are approximate conditional model
+uncertainty, not econometric confidence or prediction intervals.
+
 ## Data and identification
 
 ### Binary response
@@ -120,7 +220,11 @@ their experimental paths and expect change. See
 - Add a constant column explicitly when an intercept is required.
 - DataFrame names must be unique; prediction names and order must match the fit.
 - Complete or quasi-complete separation is rejected because the unpenalized finite MLE
-  does not exist.
+  does not exist. Experimental `FirthBinaryLogit` is the explicit bias-reduced remedy;
+  it does not silently replace the stable MLE estimator.
+- The experimental Firth and ridge estimators retain the current full-rank, `n > p`
+  design contract. They address finite-sample bias, separation, or shrinkage within that
+  boundary; they are not high-dimensional `p >= n` estimators.
 
 ### Pooled and flexible ordinal response
 
@@ -445,6 +549,8 @@ comparison. Each layer answers a different question.
 | Deterministic Python test suite | **PASS** | Maintained repository tests pass |
 | Binary Logit/Probit vs Statsmodels | **PASS** | Coefficients, likelihood, inference, predictions, criteria, AMEs |
 | Ordered Logit/Probit vs Statsmodels | **PASS** | Maintained aligned pooled specifications |
+| ML metrics/splitters vs scikit-learn | **PASS** | Matching definitions and deterministic fold contracts; intentional RNG/endpoint policies documented |
+| Four-fold Binary Logit prediction gate | **PASS** | Held-out probabilities vs Statsmodels and unpenalized scikit-learn |
 | Flexible ordinal recovery/safeguards | **PASS** | Known bounded-support DGPs and non-crossing behavior |
 | Static RE ordinal recovery/numerics | **PASS** | Balanced/unbalanced panels, quadrature, invariance, posterior identities |
 | Dynamic RE ordinal recovery/numerics | **PASS** | Exact specification, quadrature, invariance, trimming rules |
@@ -467,6 +573,11 @@ software versions, result envelopes, and evidence boundaries. The
 [cross-software evidence index](validation/PARITY_EVIDENCE.md) records the
 four completed outcomes and their exact manifest, report, and certificate
 digests.
+
+The [Python reference-package gates](docs/VALIDATION.md#python-reference-package-gates)
+record metric-level scikit-learn comparisons, splitter contracts, and the exact numerical
+envelope for an end-to-end out-of-fold Binary Logit comparison. Those checks validate the
+workflow implementation; they do not turn predictive scores into identification evidence.
 
 Parity requires an explicit binary constant, no ordinal constant, aligned cutpoint signs,
 observed-information covariance where declared, full random-effect scale Jacobians, aligned
@@ -541,9 +652,10 @@ Start with the [documentation index](docs/README.md), then use the guides for
 cover [category ordering](docs/CATEGORY_ORDER.md), the
 [dynamic numerical certificate](docs/DYNAMIC_ORDINAL_VALIDATION.md),
 [ecosystem compatibility](docs/ECOSYSTEM_COMPATIBILITY.md),
-[validation](docs/VALIDATION.md), [experimental status](docs/EXPERIMENTAL_MODELS.md), and the
-[cross-software evidence index](validation/PARITY_EVIDENCE.md),
-[Stata harness](validation/stata/README.md), and
+[validation](docs/VALIDATION.md), [experimental status](docs/EXPERIMENTAL_MODELS.md), the
+[probability-aware validation workflow](docs/ML_WORKFLOWS.md), the
+[cross-software evidence index](validation/PARITY_EVIDENCE.md), the
+[Stata harness](validation/stata/README.md), and the
 [R harness](validation/r/README.md). Project processes are in
 [CONTRIBUTING.md](CONTRIBUTING.md), [RELEASING.md](RELEASING.md),
 [CHANGELOG.md](CHANGELOG.md), and [SECURITY.md](SECURITY.md).
@@ -553,7 +665,7 @@ is in [CITATION.cff](CITATION.cff). Suggested interim citation:
 
 ```text
 Akanbi, Oluwajuwon Mayomi. limiteddepkit: Limited-dependent-variable models for Python.
-Version 0.1.0a1, 2026. Alpha software.
+Version 0.1.0a1, 2026.
 ```
 
 No repository URL, DOI, or archival identifier is asserted before one is assigned. Add the

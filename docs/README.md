@@ -23,6 +23,9 @@ support claim.
   shared with `systemgmmkit` and deliberate differences for discrete outcomes.
 - [Experimental model status](EXPERIMENTAL_MODELS.md) records validation
   evidence, remaining promotion gates, and package-scope decisions.
+- [Probability-aware validation workflows](ML_WORKFLOWS.md) document the
+  experimental outcome-specific scoring, grouped and temporal splitting,
+  out-of-fold prediction, and validity-gated comparison layer.
 
 ## Validation evidence
 
