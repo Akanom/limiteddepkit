@@ -5,7 +5,10 @@ include LICENSE
 include README.md
 include RELEASING.md
 include SECURITY.md
+include validation/PARITY_EVIDENCE.md
 recursive-include docs *.md
 recursive-include validation/stata *.do *.md *.ps1 *.py
 prune validation/stata/work
+recursive-include validation/r *.R *.md *.ps1 *.py
+prune validation/r/work
 prune _out_of_scope

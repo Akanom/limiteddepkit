@@ -47,17 +47,31 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "prune _out_of_scope" in manifest
     assert "recursive-include validation/stata *.do *.md *.ps1 *.py" in manifest
     assert "prune validation/stata/work" in manifest
+    assert "recursive-include validation/r *.R *.md *.ps1 *.py" in manifest
+    assert "prune validation/r/work" in manifest
+    assert "include validation/PARITY_EVIDENCE.md" in manifest
 
 
-def test_documentation_does_not_overstate_unrun_stata_parity():
+def test_documentation_records_completed_benchmark_specific_parity():
     readme = _read("README.md")
     parity_guide = _read("validation/stata/README.md")
+    r_guide = _read("validation/r/README.md")
     validation = _read("docs/VALIDATION.md")
+    evidence_index = _read("validation/PARITY_EVIDENCE.md")
 
-    assert "PREPARED — AWAITING MANUAL STATA RUN" in readme
-    assert "PREPARED / AWAITING MANUAL STATA EXECUTION" in parity_guide
-    assert "No external Stata pass claimed" in readme
-    assert "awaiting the manual Stata run" in validation
-    combined = "\n".join([readme, parity_guide, validation])
+    assert "PASS — 82/82" in readme
+    assert "PASS — 110/110" in readme
+    assert "PASS — ALL EIGHT FAMILIES" in parity_guide
+    assert "PASS — ALL EIGHT FAMILIES" in r_guide
+    assert "benchmark-specific" in parity_guide
+    assert "benchmark-specific" in r_guide
+    assert "gologit2` 3.2.8" in readme
+    assert evidence_index.count("**PASS**") == 4
+    assert "82 | 0 | 0" in evidence_index
+    assert "110 | 0 | 0" in evidence_index
+    assert "b74f790dac0d25c3d0ef872ed43c5941" in evidence_index
+    assert "2780339b9e02d6b8917c9c33edad1042" in evidence_index
+    combined = "\n".join([readme, parity_guide, r_guide, validation])
+    assert "AWAITING MANUAL STATA" not in combined
     assert "PASS_STATA_PARITY" not in combined
     assert "PASS_STATA_COMPARISON" not in combined

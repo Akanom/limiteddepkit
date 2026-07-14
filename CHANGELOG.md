@@ -7,7 +7,21 @@ pre-release phase.
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+
+- Pinned R 4.5.1 parity harness covering all eight stable binary and ordinal
+  families on both controlled and public-data fixtures, with canonical
+  covariance, fit, probability, metadata, report, and certificate exports.
+- Committed cross-software evidence index recording the four completed parity
+  outcomes and exact manifest, report, and certificate digests.
+
+### Changed
+
+- Completed both maintained Stata 17 parity tracks with `gologit2` 3.2.8; all
+  eight families pass all declared checks on the controlled and real-data
+  suites.
+- Added Stata random-effect variance-to-standard-deviation canonicalization and
+  tightened pooled ordered-model reference optimization.
 
 ## [0.1.0a1] - Release pending
 
@@ -26,6 +40,8 @@ No changes yet.
 - Separate hash-pinned Stata Press real-data application harness, with
   provenance-preserving downloads, full fit/covariance exports, and
   machine-readable comparison evidence.
+- Independent, hash-pinned R parity workflows for the same eight models and
+  datasets.
 - Experimental namespace for provisional non-ordinal model families.
 - Experimental fixed-boundary censored quantile regression with multi-start
   Powell check-loss fitting and opt-in pairs-bootstrap inference.

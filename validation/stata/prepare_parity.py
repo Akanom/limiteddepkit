@@ -27,6 +27,8 @@ ldk = importlib.import_module("limiteddepkit")
 N_CROSS_SECTION = 1_500
 QUADRATURE_POINTS = 12
 PANEL_OPTIMIZER_TOLERANCE = 1e-12
+ORDERED_OPTIMIZER_TOLERANCE = 1e-13
+ORDERED_OPTIMIZER_MAXITER = 5_000
 PREDICTION_ROWS = 25
 STATA_TIMESTAMP = datetime(2000, 1, 1)
 STALE_STATA_ARTIFACTS = (
@@ -40,6 +42,16 @@ STALE_STATA_ARTIFACTS = (
     "covariance_canonical.csv",
 )
 STALE_COMPARISON_ARTIFACTS = (
+    "comparison_report.csv",
+    "comparison_summary.md",
+    "parity_certificate.json",
+)
+STALE_R_ARTIFACTS = (
+    "estimates.csv",
+    "covariance.csv",
+    "fit.csv",
+    "predictions.csv",
+    "metadata.csv",
     "comparison_report.csv",
     "comparison_summary.md",
     "parity_certificate.json",
@@ -70,6 +82,7 @@ def _remove_stale_evidence(workdir: Path) -> None:
     candidates = (
         *(workdir / "stata" / name for name in STALE_STATA_ARTIFACTS),
         *(workdir / name for name in STALE_COMPARISON_ARTIFACTS),
+        *(workdir / "r" / name for name in STALE_R_ARTIFACTS),
     )
     for candidate in candidates:
         if candidate.is_file() or candidate.is_symlink():
@@ -368,7 +381,11 @@ def main() -> int:
     )
 
     ordered_logit = ldk.OrderedLogit().fit(
-        designs["ordinal"], outcomes["y_ologit"], category_order=[0, 1, 2]
+        designs["ordinal"],
+        outcomes["y_ologit"],
+        category_order=[0, 1, 2],
+        maxiter=ORDERED_OPTIMIZER_MAXITER,
+        tolerance=ORDERED_OPTIMIZER_TOLERANCE,
     )
     _assert_result("ordered_logit", ordered_logit, expected_nobs=N_CROSS_SECTION)
     _record_model(
@@ -384,7 +401,11 @@ def main() -> int:
     )
 
     ordered_probit = ldk.OrderedProbit().fit(
-        designs["ordinal"], outcomes["y_oprobit"], category_order=[0, 1, 2]
+        designs["ordinal"],
+        outcomes["y_oprobit"],
+        category_order=[0, 1, 2],
+        maxiter=ORDERED_OPTIMIZER_MAXITER,
+        tolerance=ORDERED_OPTIMIZER_TOLERANCE,
     )
     _assert_result("ordered_probit", ordered_probit, expected_nobs=N_CROSS_SECTION)
     _record_model(
@@ -578,6 +599,8 @@ def main() -> int:
         "quadrature_method": "ghermite",
         "quadrature_points": QUADRATURE_POINTS,
         "panel_optimizer_tolerance": PANEL_OPTIMIZER_TOLERANCE,
+        "ordered_optimizer_tolerance": ORDERED_OPTIMIZER_TOLERANCE,
+        "ordered_optimizer_maxiter": ORDERED_OPTIMIZER_MAXITER,
         "prediction_rows_per_model": PREDICTION_ROWS,
         "files": file_hashes,
         "models": {

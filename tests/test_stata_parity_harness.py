@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -204,6 +205,24 @@ def test_stata_parameter_mappings_cover_sign_and_scale_transforms():
     assert np.isclose(random_mapping["sigma_entity"].standard_error, 0.14)
     assert random_mapping["threshold: 0 | 1"].estimate == -0.8
 
+    variance_parameterization = _raw_rows(
+        "random_effects_ordered_logit",
+        [
+            ("y:x1", 0.8, 0.1),
+            ("/cut1:_cons", -0.8, 0.1),
+            ("/cut2:_cons", 0.9, 0.1),
+            ("/var(_cons[entity])", 0.49, 0.28),
+        ],
+    )
+    variance_mapping = {
+        item.name: item
+        for item in comparator._canonical_mapping(
+            "random_effects_ordered_logit", variance_parameterization
+        )
+    }
+    assert np.isclose(variance_mapping["sigma_entity"].estimate, 0.7)
+    assert np.isclose(variance_mapping["sigma_entity"].standard_error, 0.2)
+
     dynamic = _raw_rows(
         "dynamic_random_effects_ordered_logit",
         [
@@ -262,6 +281,42 @@ def test_stata_covariance_transform_uses_parameter_jacobian():
         "covariance",
     ].iloc[0]
     assert np.isclose(sigma_variance, 0.7**2)
+
+
+def test_stata_variance_covariance_transform_uses_sqrt_jacobian():
+    comparator = _load_comparator()
+    estimates = _raw_rows(
+        "random_effects_ordered_logit",
+        [
+            ("y:x1", 0.8, 1.0),
+            ("/cut1:_cons", -0.8, 1.0),
+            ("/cut2:_cons", 0.9, 1.0),
+            ("/var(_cons[entity])", 0.49, 1.0),
+        ],
+    )
+    covariance = pd.DataFrame(
+        [
+            {
+                "model": "random_effects_ordered_logit",
+                "row_position": row,
+                "column_position": column,
+                "row_parameter": "unused",
+                "column_parameter": "unused",
+                "covariance": float(row == column),
+            }
+            for row in range(1, 5)
+            for column in range(1, 5)
+        ]
+    )
+    _, transformed = comparator._canonical_stata_results(
+        "random_effects_ordered_logit", estimates, covariance
+    )
+    sigma_variance = transformed.loc[
+        (transformed["row_parameter"] == "sigma_entity")
+        & (transformed["column_parameter"] == "sigma_entity"),
+        "covariance",
+    ].iloc[0]
+    assert np.isclose(sigma_variance, (0.5 / 0.7) ** 2)
 
 
 def test_comparison_row_fails_for_any_nonfinite_difference_or_missing_key():
@@ -477,6 +532,44 @@ def test_comparator_requires_completed_matching_stata_run_metadata():
         bad_metadata = {**metadata, key: bad_value}
         with pytest.raises(RuntimeError, match="completed matching run"):
             comparator._verify_run_metadata(bad_metadata, manifest)
+
+
+def test_comparator_extracts_gologit2_version_from_completed_log():
+    comparator = _load_comparator()
+    log = (
+        "C:/ado/plus/g/gologit2.ado\n"
+        "*! version 3.2.8 9aug2025 Richard Williams, rwilliam@example.com\n"
+    )
+    assert comparator._gologit2_version(log, "1") == "3.2.8"
+    assert comparator._gologit2_version("", "0") == "not_installed"
+    with pytest.raises(RuntimeError, match="exactly one add-on version"):
+        comparator._gologit2_version("no version here", "1")
+
+
+def test_stata_manifest_requires_frozen_inputs_and_controls(tmp_path: Path):
+    comparator = _load_comparator()
+    base = {
+        "schema_version": 1,
+        "suite": "controlled_synthetic_certification",
+        **comparator.EXPECTED_MANIFEST_CONTROLS,
+        "quadrature_points": 12,
+    }
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps({**base, "files": {}}), encoding="utf-8")
+    with pytest.raises(ValueError, match="missing required file registrations"):
+        comparator._verify_manifest(tmp_path)
+
+    required = (
+        comparator.REQUIRED_PYTHON_REFERENCES
+        | comparator.REQUIRED_MANIFEST_FILES["controlled_synthetic_certification"]
+    )
+    registered = {name: "0" * 64 for name in required}
+    registered["../outside.dta"] = "0" * 64
+    manifest_path.write_text(
+        json.dumps({**base, "files": registered}), encoding="utf-8"
+    )
+    with pytest.raises(RuntimeError, match="path escapes work directory"):
+        comparator._verify_manifest(tmp_path)
 
 
 def test_do_file_pins_required_stata_estimands_and_quadrature():

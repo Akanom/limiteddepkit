@@ -26,11 +26,16 @@ support claim.
 
 ## Validation evidence
 
+- [Cross-software parity evidence index](../validation/PARITY_EVIDENCE.md)
+  records the four completed Stata/R outcomes and the SHA-256 identities of
+  their manifests, reports, and certificates.
 - [Validation overview](VALIDATION.md) records the maintained reference and
   simulation-recovery boundary.
 - [Stata parity harness](../validation/stata/README.md) provides controlled
   deterministic certification fixtures and a separate downloaded-real-data
   application track for the stable binary and ordinal estimators.
+- [R parity harness](../validation/r/README.md) independently fits all eight
+  maintained families on the same controlled and real-data fixtures.
 - [Dynamic ordinal numerical validation](DYNAMIC_ORDINAL_VALIDATION.md) records
   quadrature-convergence and invariance certification.
 

@@ -125,6 +125,33 @@ TOLERANCES: dict[str, dict[str, float]] = {
     },
 }
 
+REQUIRED_MANIFEST_FILES = {
+    "controlled_synthetic_certification": {
+        "data/cross_section.dta",
+        "data/static_re.dta",
+        "data/dynamic_design.dta",
+    },
+    "real_data_application": {
+        "data/binary_lbw.dta",
+        "data/ordinal_tvsfpors.dta",
+        "data/dynamic_nlswork_design.dta",
+    },
+}
+REQUIRED_PYTHON_REFERENCES = {
+    "python/estimates.csv",
+    "python/covariance.csv",
+    "python/fit.csv",
+    "python/predictions.csv",
+}
+EXPECTED_MANIFEST_CONTROLS = {
+    "limiteddepkit_version": "0.1.0a1",
+    "prediction_rows_per_model": 25,
+    "quadrature_method": "ghermite",
+    "ordered_optimizer_maxiter": 5_000,
+    "ordered_optimizer_tolerance": 1e-13,
+    "panel_optimizer_tolerance": 1e-12,
+}
+
 PYTHON_REFERENCE_SCHEMAS = {
     "estimates": (
         ("model", "parameter", "estimate", "standard_error"),
@@ -263,6 +290,19 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _invalidate_comparison_evidence(workdir: Path) -> None:
+    candidates = (
+        workdir / "comparison_report.csv",
+        workdir / "comparison_summary.md",
+        workdir / "parity_certificate.json",
+        workdir / "stata" / "estimates_canonical.csv",
+        workdir / "stata" / "covariance_canonical.csv",
+    )
+    for candidate in candidates:
+        if candidate.is_file() or candidate.is_symlink():
+            candidate.unlink()
+
+
 def _parse_metadata(text: str) -> dict[str, str]:
     """Parse the strict key-value metadata emitted by the maintained do-files."""
 
@@ -322,6 +362,23 @@ def _verify_run_metadata(metadata: dict[str, str], manifest: dict[str, Any]) -> 
     return verified
 
 
+def _gologit2_version(log_text: str, installed: str) -> str:
+    if installed == "0":
+        return "not_installed"
+    matches = set(
+        re.findall(
+            r"^\*!\s+version\s+([0-9]+(?:\.[0-9]+)+).*Richard Williams",
+            log_text,
+            flags=re.MULTILINE | re.IGNORECASE,
+        )
+    )
+    if len(matches) != 1:
+        raise RuntimeError(
+            "A completed gologit2 run must expose exactly one add-on version in the Stata log"
+        )
+    return matches.pop()
+
+
 def _verify_panel_quadrature(
     metadata: dict[str, str],
     manifest: dict[str, Any],
@@ -379,16 +436,52 @@ def _verify_panel_quadrature(
 
 def _verify_manifest(workdir: Path) -> dict[str, Any]:
     manifest_path = workdir / "manifest.json"
-    if not manifest_path.exists():
+    if not manifest_path.is_file():
         raise FileNotFoundError(
             f"Missing {manifest_path}; run the appropriate parity preparation script "
             "before comparison."
         )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != 1:
+        raise ValueError("Only parity manifest schema version 1 is supported")
+    suite = str(manifest.get("suite"))
+    if suite not in REQUIRED_MANIFEST_FILES:
+        raise ValueError(f"Unsupported parity suite: {suite!r}")
+    expected_controls = {
+        **EXPECTED_MANIFEST_CONTROLS,
+        "quadrature_points": 12 if suite == "controlled_synthetic_certification" else 20,
+    }
+    control_errors = [
+        f"{key}: expected {expected!r}, found {manifest.get(key)!r}"
+        for key, expected in expected_controls.items()
+        if manifest.get(key) != expected
+    ]
+    if control_errors:
+        raise ValueError("Parity manifest control mismatch: " + "; ".join(control_errors))
+    registered = manifest.get("files")
+    if not isinstance(registered, dict):
+        raise ValueError("Parity manifest files must be an object of SHA-256 registrations")
+    missing_required = sorted(
+        (REQUIRED_PYTHON_REFERENCES | REQUIRED_MANIFEST_FILES[suite]) - set(registered)
+    )
+    if missing_required:
+        raise ValueError(
+            "Parity manifest is missing required file registrations: "
+            + ", ".join(missing_required)
+        )
     mismatches: list[str] = []
-    for relative_path, expected_hash in manifest["files"].items():
-        path = workdir / relative_path
-        if not path.exists():
+    root = workdir.resolve()
+    for relative_path, expected_hash in registered.items():
+        relative_path = str(relative_path).replace("\\", "/")
+        expected_hash = str(expected_hash)
+        if re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None:
+            mismatches.append(f"invalid SHA-256 registration for {relative_path}")
+            continue
+        path = (root / relative_path).resolve()
+        if path != root and root not in path.parents:
+            mismatches.append(f"path escapes work directory: {relative_path}")
+            continue
+        if not path.is_file():
             mismatches.append(f"missing {relative_path}")
         elif _sha256(path) != expected_hash:
             mismatches.append(f"hash mismatch for {relative_path}")
@@ -440,6 +533,13 @@ def _canonical_mapping(
         elif transform == "exp":
             estimate = float(np.exp(raw_estimate))
             derivative = estimate
+        elif transform == "sqrt":
+            if raw_estimate <= 0.0:
+                raise ValueError(
+                    f"Cannot recover a standard deviation from variance {raw_estimate}."
+                )
+            estimate = float(np.sqrt(raw_estimate))
+            derivative = 0.5 / estimate
         else:  # pragma: no cover - internal invariant
             raise ValueError(f"Unknown transformation: {transform}")
         mappings.append(
@@ -471,6 +571,10 @@ def _canonical_mapping(
                 cuts.append((cut, row))
             elif kind == "random_effects" and ("lns" in lower_name or "lnsig" in lower_name):
                 add(row, "sigma_entity", transform="exp")
+            elif kind == "random_effects" and "/var(" in lower_name:
+                # Stata 17+ exports the random-intercept variance on its original
+                # scale; earlier releases commonly exported log standard deviation.
+                add(row, "sigma_entity", transform="sqrt")
             elif term in feature_map:
                 add(row, feature_map[term])
         for cut, row in sorted(cuts, key=lambda item: item[0]):
@@ -722,6 +826,9 @@ def _write_evidence(
         "result": result,
         "claim": claim,
         "limiteddepkit_version": manifest.get("limiteddepkit_version"),
+        "manifest_sha256": _sha256(workdir / "manifest.json"),
+        "ordered_optimizer_maxiter": manifest.get("ordered_optimizer_maxiter"),
+        "ordered_optimizer_tolerance": manifest.get("ordered_optimizer_tolerance"),
         "panel_optimizer_tolerance": manifest.get("panel_optimizer_tolerance"),
         "quadrature_points": manifest.get("quadrature_points"),
         "stata_run_metadata": stata_run_metadata,
@@ -735,6 +842,12 @@ def _write_evidence(
             for relative_path, digest in manifest.get("files", {}).items()
             if str(relative_path).startswith("python/")
         },
+        "prepared_data_sha256": {
+            relative_path: digest
+            for relative_path, digest in manifest.get("files", {}).items()
+            if str(relative_path).startswith("data/")
+        },
+        "tolerances": TOLERANCES,
         "checks": int(len(report)),
         "failed_checks": int(len(failures)),
         "skipped_checks": int(report["status"].eq("SKIP").sum()),
@@ -960,6 +1073,7 @@ def _compare_model(
 def main() -> int:
     args = _parse_args()
     workdir = args.workdir.resolve()
+    _invalidate_comparison_evidence(workdir)
     manifest = _verify_manifest(workdir)
     model_specs = manifest.get("comparison_model_specs", MODEL_SPECS)
     unknown_kinds = sorted(
@@ -1028,6 +1142,10 @@ def main() -> int:
 
     metadata = _parse_metadata(required_stata_files["metadata"].read_text(encoding="utf-8"))
     stata_run_metadata = _verify_run_metadata(metadata, manifest)
+    stata_run_metadata["gologit2_version"] = _gologit2_version(
+        required_stata_files["log"].read_text(encoding="utf-8", errors="replace"),
+        stata_run_metadata["gologit2_installed"],
+    )
     stata_panel_quadrature = _verify_panel_quadrature(metadata, manifest, model_specs)
 
     canonical_estimates: list[pd.DataFrame] = []

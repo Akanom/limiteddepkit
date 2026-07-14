@@ -39,15 +39,16 @@ quadrature and checks invariance to row ordering, arbitrary entity relabeling,
 and shifted time origins. Exact maintained tolerances are documented in
 `DYNAMIC_ORDINAL_VALIDATION.md`.
 
-## Manual Stata parity gate
+## External-software parity gates
 
-The stable binary and ordinal surface has two reproducible manual Stata tracks
-under `validation/stata/`:
+The stable binary and ordinal surface has aligned Stata and R tracks:
 
 | Track | Purpose | Current status |
 |---|---|---|
-| Controlled deterministic fixtures | Strict, implementation-level release gate | Prepared; awaiting the manual Stata run |
-| Downloaded Stata Press examples | Independent application check on non-simulated observations | Prepared; awaiting the manual Stata run |
+| Controlled deterministic fixtures — Stata | Strict, implementation-level release gate | **PASS — 82/82; all eight families** |
+| Downloaded Stata Press examples — Stata | Independent application check on non-simulated observations | **PASS — 82/82; all eight families** |
+| Controlled deterministic fixtures — R | Independent implementation check on the certification data | **PASS — 110/110; all eight families** |
+| Downloaded Stata Press examples — R | Independent application check on the same frozen observations | **PASS — 110/110; all eight families** |
 
 The controlled track remains the certification benchmark. The application
 track uses pinned, hash-verified `lbw`, `tvsfpors`, and `nlswork` files and must
@@ -55,7 +56,7 @@ not be used to broaden a benchmark-specific certification claim. The source
 datasets are downloaded into the ignored working directory and are not
 redistributed by the package.
 
-Both tracks export raw Stata `e(b)` and full `e(V)` results, observation and
+The Stata tracks export raw `e(b)` and full `e(V)` results, observation and
 group counts, parameter counts, log likelihood, information criteria,
 convergence state, and selected probabilities. The Python comparator applies
 documented cutpoint, flexible-ordinal intercept, and random-effect scale
@@ -64,7 +65,16 @@ JSON evidence. Panel commands use nonadaptive Gauss-Hermite quadrature with the
 same node count as the toolkit and compare fixed-part probabilities at a random
 effect of zero.
 
-No Stata parity result is claimed until the returned Stata files have been
-compared successfully. See the [parity guide](../validation/stata/README.md) for
-the complete commands, tolerances, data provenance, optional `gologit2` checks,
-and allowed claim language.
+The R tracks independently use `glm.fit`, `MASS::polr`, `VGAM::vglm`, and
+`ordinal::clmm`. They export the same canonical evidence contract. Probit and
+flexible ordinal covariance estimands are explicitly aligned to the toolkit's
+observed information, and panel log-SD covariance is transformed with a full
+Jacobian.
+
+The completed comparisons used Stata 17 with `gologit2` 3.2.8 and a pinned R
+4.5.1 environment on 14 July 2026. See the
+[committed evidence index](../validation/PARITY_EVIDENCE.md) for the four
+outcomes and exact manifest, report, and certificate digests; see the
+[Stata parity guide](../validation/stata/README.md) and
+[R parity guide](../validation/r/README.md) for commands, tolerances, provenance,
+numerical envelopes, evidence files, and allowed claim language.

@@ -3,8 +3,8 @@
 `limiteddepkit` is a Python toolkit for limited-dependent-variable econometrics. Alpha
 release `0.1.0a1` supports a narrow, reviewable binary and ordinal core.
 
-> **Alpha warning:** APIs may change before a stable release. Deterministic Python tests pass,
-> but the prepared Stata parity suites await a manual run. Validate results independently.
+> **Alpha warning:** APIs may change before a stable release. The maintained Python, Stata,
+> and R validation suites pass, but every claim remains specification- and benchmark-specific.
 
 The package is intended for empirical researchers working with binary choices, ordered
 outcomes, and static or dynamic ordinal panels. Its result conventions align with
@@ -448,22 +448,30 @@ comparison. Each layer answers a different question.
 | Flexible ordinal recovery/safeguards | **PASS** | Known bounded-support DGPs and non-crossing behavior |
 | Static RE ordinal recovery/numerics | **PASS** | Balanced/unbalanced panels, quadrature, invariance, posterior identities |
 | Dynamic RE ordinal recovery/numerics | **PASS** | Exact specification, quadrature, invariance, trimming rules |
-| Controlled synthetic Stata certification | **PREPARED — AWAITING MANUAL STATA RUN** | No external Stata pass claimed |
-| Downloaded real-data Stata application | **PREPARED — AWAITING MANUAL STATA RUN** | Applied robustness, not strict certification |
+| Controlled synthetic Stata certification | **PASS — 82/82** | All eight families; Stata 17 and `gologit2` 3.2.8 |
+| Downloaded real-data Stata application | **PASS — 82/82** | Applied robustness; does not broaden controlled certification |
+| Controlled synthetic R parity | **PASS — 110/110** | All eight families; pinned R 4.5.1 environment |
+| Downloaded real-data R application | **PASS — 110/110** | Applied robustness; independent R estimators on frozen data |
 
 The **controlled synthetic track** fixes the DGP, mappings, prediction target, quadrature,
 and tolerances; it is the strict certification design. The **downloaded real-data track**
 adds external data provenance and applied data handling, but cannot establish parameter
 recovery and does not replace the controlled gate.
 
-Both are documented in the [Stata parity harness](validation/stata/README.md). Python
-prepares references and Stata code; the user runs Stata manually and returns exports to the
-comparator. Until that succeeds, the status is “prepared,” not “passed.”
+The manual Stata runs and independent R runs completed on 14 July 2026. Both controlled and
+real-data tracks included Binary Logit/Probit, Ordered Logit/Probit, Generalized Ordered
+Logit, Partial Proportional Odds, static RE Ordered Logit, and dynamic RE Ordered Logit.
+See the [Stata parity harness](validation/stata/README.md) and
+[R parity harness](validation/r/README.md) for commands, mappings, declared tolerances,
+software versions, result envelopes, and evidence boundaries. The
+[cross-software evidence index](validation/PARITY_EVIDENCE.md) records the
+four completed outcomes and their exact manifest, report, and certificate
+digests.
 
 Parity requires an explicit binary constant, no ordinal constant, aligned cutpoint signs,
-matching non-adaptive quadrature and nodes, transformation of Stata's log random-effect SD,
-and the same prediction target. In particular, conditional `u=0` probabilities are not
-interchangeable with default empirical-Bayes predictions.
+observed-information covariance where declared, full random-effect scale Jacobians, aligned
+nonadaptive quadrature, and the same prediction target. In particular, conditional `u=0`
+probabilities are not interchangeable with default empirical-Bayes predictions.
 
 Validation claims apply only to maintained specifications. Users must still assess their
 sample, category support, convergence, identification, extrapolation, and estimand.
@@ -502,8 +510,9 @@ For publication or review, report:
 - parity track, software versions, mappings, and tolerance if cross-software evidence is
   reported.
 
-Do not report a prepared Stata script as parity. Archive the Stata log, exported values,
-comparator report, add-on versions, and data manifest with any parity claim.
+Archive the manifest, Python references, Stata log and exports, R exports, comparator
+reports, software versions, and certificates with any parity claim. Do not carry the result
+to a changed dataset, specification, optimizer, covariance target, or quadrature rule.
 
 ## Package boundary and roadmap
 
@@ -516,8 +525,8 @@ installed package. See [Package scope](docs/PACKAGE_SCOPE.md) for the keep/extra
 
 Near-term work remains conservative:
 
-1. complete and archive manual Stata runs for both prepared parity tracks;
-2. stabilize parameter mappings and documentation discovered during parity;
+1. archive the completed Stata and R evidence with the exact repository commit;
+2. rerun both external-software tracks after estimator or reference changes;
 3. broaden covariance and data contracts only with tests and explicit estimands;
 4. promote an experimental family only after likelihood, inference, post-estimation,
    failure modes, recovery, and reference evidence are reviewed; and
@@ -533,7 +542,9 @@ cover [category ordering](docs/CATEGORY_ORDER.md), the
 [dynamic numerical certificate](docs/DYNAMIC_ORDINAL_VALIDATION.md),
 [ecosystem compatibility](docs/ECOSYSTEM_COMPATIBILITY.md),
 [validation](docs/VALIDATION.md), [experimental status](docs/EXPERIMENTAL_MODELS.md), and the
-[Stata harness](validation/stata/README.md). Project processes are in
+[cross-software evidence index](validation/PARITY_EVIDENCE.md),
+[Stata harness](validation/stata/README.md), and
+[R harness](validation/r/README.md). Project processes are in
 [CONTRIBUTING.md](CONTRIBUTING.md), [RELEASING.md](RELEASING.md),
 [CHANGELOG.md](CHANGELOG.md), and [SECURITY.md](SECURITY.md).
 

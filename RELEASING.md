@@ -14,16 +14,14 @@ complete. Use the remaining checklist for external publication.
 3. Replace `Release pending` in the `0.1.0a1` changelog heading with the actual
    publication date, then review the supported-versus-experimental API list.
    Do not add another model family to this release candidate.
-4. Complete both maintained Stata workflows in
-   `validation/stata/README.md`. First generate the controlled deterministic
-   fixtures, run `limiteddepkit_parity.do` manually, and run the Python
-   comparator. Then prepare the pinned Stata Press application datasets, run
-   `limiteddepkit_real_data.do` manually, and compare that work directory. The
-   six built-in-command models must pass in both tracks; archive each manifest,
-   Stata log, raw and canonical result CSV, comparison report, Markdown
-   summary, and JSON certificate. Run the optional Generalized Ordered Logit
-   and PPO checks when `gologit2` is installed. Treat only the controlled track
-   as certification evidence; the real-data track is an application check.
+4. Reconfirm and archive the external-software evidence. The 14 July 2026
+   Stata 17 runs with `gologit2` 3.2.8 passed all eight models in both tracks;
+   the pinned R 4.5.1 runs also passed all eight. Before publication, rerun both
+   comparators against the unchanged manifests and archive each manifest,
+   external-software log/metadata, canonical result CSV, comparison report,
+   Markdown summary, JSON certificate, and exact commit. Treat only the
+   controlled tracks as certification evidence; the real-data tracks are
+   application checks.
 5. Run the checks from a clean environment:
 
    ```bash

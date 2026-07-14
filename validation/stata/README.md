@@ -2,13 +2,14 @@
 
 ## Current status
 
-> **PREPARED / AWAITING MANUAL STATA EXECUTION**
+> **PASS — ALL EIGHT FAMILIES, CONTROLLED AND REAL-DATA TRACKS**
 
-The controlled synthetic suite and the public-data application suite are
-implemented. Python can prepare their inputs and `limiteddepkit` reference
-results, and the Stata do-files can export the corresponding evidence. Stata
-has not yet been run for the maintained evidence bundle. Therefore, no model in
-this document is currently claimed to have passed Stata parity.
+The maintained suites were run manually in Stata 17 and compared on 14 July
+2026. The controlled synthetic suite passed 82 of 82 declared checks and the
+public-data application suite passed 82 of 82, with no failures or skips. All
+eight families were included; the run log identifies `gologit2` 3.2.8. The
+generated reports and certificates remain under the ignored work directories
+and must be archived together if they support a release or publication claim.
 
 This directory follows a two-track validation architecture:
 
@@ -27,21 +28,18 @@ runs Stata manually and decides whether to install `gologit2`.
 
 Starting either preparation pass removes only the maintained prior Stata
 exports, Stata log, canonical files, comparison report, summary, and certificate
-from that target work directory. The matching do-file repeats this cleanup
-before opening a new log. A completed do-file records its exact `suite` and
+from that target work directory, plus maintained R outputs if the directory is
+shared with the R harness. The matching do-file repeats the Stata cleanup before
+opening a new log. A completed do-file records its exact `suite` and
 `run_completed=1` in `metadata.txt` only after every raw export succeeds; a
 missing completion marker means the Stata run is incomplete and its partial
 outputs must not be used as evidence.
 
 ## Claim boundary
 
-Until both a Stata run and the Python comparison have completed, the permitted
-description is:
-
-> The Stata parity harness is prepared and awaiting manual Stata execution.
-
-Do not describe the models as Stata-certified, parity-passing, or numerically
-equivalent at the current stage.
+Both maintained runs and their Python comparisons have completed. The current
+evidence supports the two benchmark-specific statements below. It does not
+support an unqualified claim that Python and Stata are universally identical.
 
 After a successful controlled comparison, the strongest allowed statement is:
 
@@ -68,14 +66,14 @@ unless the comparator receives `--require-flexible`.
 
 | Stable `limiteddepkit` model | Stata reference | Controlled fixture | Public-data application | Gate | Current status |
 | --- | --- | --- | --- | --- | --- |
-| `BinaryLogit` | `logit ..., noconstant vce(oim)` | 1,500-row binary Logit DGP | `lbw.dta` | Required | PREPARED — AWAITING MANUAL STATA |
-| `BinaryProbit` | `probit ..., noconstant vce(oim)` | 1,500-row binary Probit DGP | `lbw.dta` | Required | PREPARED — AWAITING MANUAL STATA |
-| `OrderedLogit` | `ologit ..., vce(oim)` | 1,500-row three-category Logit DGP | `tvsfpors.dta` | Required | PREPARED — AWAITING MANUAL STATA |
-| `OrderedProbit` | `oprobit ..., vce(oim)` | 1,500-row three-category Probit DGP | `tvsfpors.dta` | Required | PREPARED — AWAITING MANUAL STATA |
-| `GeneralizedOrderedLogit` | `gologit2 ..., npl` | 1,500-row nonparallel Logit DGP | `tvsfpors.dta` | Optional `gologit2` | PREPARED — AWAITING MANUAL STATA |
-| `PartialProportionalOdds` | `gologit2 ..., npl(variable)` | Same flexible ordinal fixture | `tvsfpors.dta` | Optional `gologit2` | PREPARED — AWAITING MANUAL STATA |
-| `RandomEffectsOrderedLogit` | `meologit ..., intmethod(ghermite)` | 80 groups × 6 periods | `tvsfpors.dta`, 28 schools | Required | PREPARED — AWAITING MANUAL STATA |
-| `DynamicRandomEffectsOrderedLogit` | `meologit` on exported augmented design | 60 groups × 6 periods | balanced `nlswork.dta` subset | Required | PREPARED — AWAITING MANUAL STATA |
+| `BinaryLogit` | `logit ..., noconstant vce(oim)` | 1,500-row binary Logit DGP | `lbw.dta` | Required | PASS — BOTH TRACKS |
+| `BinaryProbit` | `probit ..., noconstant vce(oim)` | 1,500-row binary Probit DGP | `lbw.dta` | Required | PASS — BOTH TRACKS |
+| `OrderedLogit` | `ologit ..., vce(oim)` | 1,500-row three-category Logit DGP | `tvsfpors.dta` | Required | PASS — BOTH TRACKS |
+| `OrderedProbit` | `oprobit ..., vce(oim)` | 1,500-row three-category Probit DGP | `tvsfpors.dta` | Required | PASS — BOTH TRACKS |
+| `GeneralizedOrderedLogit` | `gologit2 ..., npl` | 1,500-row nonparallel Logit DGP | `tvsfpors.dta` | Optional `gologit2` | PASS — BOTH TRACKS |
+| `PartialProportionalOdds` | `gologit2 ..., npl(variable)` | Same flexible ordinal fixture | `tvsfpors.dta` | Optional `gologit2` | PASS — BOTH TRACKS |
+| `RandomEffectsOrderedLogit` | `meologit ..., intmethod(ghermite)` | 80 groups × 6 periods | `tvsfpors.dta`, 28 schools | Required | PASS — BOTH TRACKS |
+| `DynamicRandomEffectsOrderedLogit` | `meologit` on exported augmented design | 60 groups × 6 periods | balanced `nlswork.dta` subset | Required | PASS — BOTH TRACKS |
 
 The built-in-command comparisons require Stata 15.1 or newer. If all eight
 models are wanted, install `gologit2` manually from inside Stata:
@@ -148,6 +146,9 @@ python validation/stata/prepare_parity.py --output "C:/parity/limiteddepkit-synt
 
 The default is `validation/stata/work/`. Preparation writes CSV and Stata
 `.dta` datasets, Python reference results, and a hash manifest.
+Pooled Ordered Logit/Probit references use `maxiter=5000` and optimizer
+function tolerance `1e-13`; both controls are recorded in the manifest and
+certificate. Panel references separately record optimizer tolerance `1e-12`.
 
 ### Step 2 — run Stata manually
 
@@ -324,18 +325,28 @@ through this claim framework.
 
 ### Random-effect scale and full covariance
 
-Stata stores the random-intercept scale internally as a log standard deviation.
-If `eta = log(sigma_entity)`, the comparator uses:
+Stata releases expose the random-intercept scale under more than one raw
+parameter name. For a log standard deviation `eta = log(sigma_entity)`, the
+comparator uses:
 
 ```text
 sigma_entity = exp(eta)
 d sigma_entity / d eta = sigma_entity
 ```
 
-It applies this delta-method derivative to the standard error and the full
-covariance matrix. More generally, every canonical covariance is calculated as
-`J V_stata J'`, including off-diagonal cells. It is never reconstructed from
-reported standard errors.
+The completed Stata 17 runs exported `/var(_cons[entity])` on the variance
+scale. If `v = sigma_entity^2`, the comparator instead uses:
+
+```text
+sigma_entity = sqrt(v)
+d sigma_entity / d v = 1 / (2 sigma_entity)
+```
+
+The recognized raw name determines the transformation; the comparator never
+guesses from the numerical value. It applies the relevant derivative to the
+standard error and the full covariance matrix. More generally, every canonical
+covariance is calculated as `J V_stata J'`, including off-diagonal cells. It is
+never reconstructed from reported standard errors.
 
 ## Quadrature and prediction conventions
 
@@ -438,6 +449,16 @@ match exactly where applicable. Stata convergence must equal one. AIC and BIC
 tolerances are twice the family log-likelihood tolerance because their only
 floating component in this aligned comparison is `-2 * loglike`.
 
+### Completed-run numerical envelope
+
+Across all eight models, the largest controlled-suite differences were
+`4.16e-6` for an estimate, `3.03e-7` for a standard error, `2.14e-7` for a
+covariance element, `3.53e-9` for log likelihood, and `1.56e-6` for a
+probability. The corresponding real-data maxima were `1.47e-5`, `2.11e-6`,
+`2.36e-6`, `2.58e-9`, and `2.77e-6`. Every value is inside its predeclared
+family gate. Each generated certificate records 82 passing checks, all eight
+models available, and zero failures.
+
 ## Reading PASS, FAIL, and SKIP
 
 - **PASS** means every aligned value for that model/statistic is finite,
@@ -505,6 +526,10 @@ requires separately documented specifications and tolerances.
 
 `validation/stata/work/` is ignored by Git because it contains generated files
 and, for the real track, third-party data. After a completed run:
+
+The [committed evidence index](../PARITY_EVIDENCE.md) records the final outcome
+and manifest, report, and certificate digests for the 14 July 2026 run. It is
+an audit pointer, not a replacement for the complete bundle described below.
 
 1. Preserve the manifest, Python references, Stata raw exports, canonical
    exports, metadata, log, report, summary, and certificate together.

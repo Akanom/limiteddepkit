@@ -56,3 +56,16 @@ def test_panel_reference_fits_use_tight_recorded_tolerance(filename: str) -> Non
     assert source.count("tolerance=PANEL_OPTIMIZER_TOLERANCE") == 2
     assert '"quadrature_method": "ghermite"' in source
     assert '"panel_optimizer_tolerance": PANEL_OPTIMIZER_TOLERANCE' in source
+
+
+@pytest.mark.parametrize("filename", ["prepare_parity.py", "prepare_real_data.py"])
+def test_ordered_reference_fits_use_tight_recorded_tolerance(filename: str) -> None:
+    preparation = _load_script(filename)
+    source = (STATA_DIR / filename).read_text(encoding="utf-8")
+
+    assert preparation.ORDERED_OPTIMIZER_TOLERANCE == 1e-13
+    assert preparation.ORDERED_OPTIMIZER_MAXITER == 5_000
+    assert source.count("tolerance=ORDERED_OPTIMIZER_TOLERANCE") == 2
+    assert source.count("maxiter=ORDERED_OPTIMIZER_MAXITER") == 2
+    assert '"ordered_optimizer_tolerance": ORDERED_OPTIMIZER_TOLERANCE' in source
+    assert '"ordered_optimizer_maxiter": ORDERED_OPTIMIZER_MAXITER' in source

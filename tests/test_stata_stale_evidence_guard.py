@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -24,14 +25,27 @@ COMPARISON_ARTIFACTS = {
     "comparison_summary.md",
     "parity_certificate.json",
 }
+CANONICAL_ARTIFACTS = {"estimates_canonical.csv", "covariance_canonical.csv"}
+R_ARTIFACTS = {
+    "estimates.csv",
+    "covariance.csv",
+    "fit.csv",
+    "predictions.csv",
+    "metadata.csv",
+    "comparison_report.csv",
+    "comparison_summary.md",
+    "parity_certificate.json",
+}
 
 
 def _load_script(filename: str) -> ModuleType:
     path = STATA_DIR / filename
-    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module_name = f"limiteddepkit_stata_{path.stem}"
+    spec = importlib.util.spec_from_file_location(module_name, path)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -41,22 +55,48 @@ def test_preparation_removes_only_known_stale_evidence(filename: str, tmp_path: 
     preparation = _load_script(filename)
     stata_dir = tmp_path / "stata"
     stata_dir.mkdir()
+    r_dir = tmp_path / "r"
+    r_dir.mkdir()
 
     for name in STATA_ARTIFACTS:
         (stata_dir / name).write_text("stale\n", encoding="utf-8")
     for name in COMPARISON_ARTIFACTS:
         (tmp_path / name).write_text("stale\n", encoding="utf-8")
+    for name in R_ARTIFACTS:
+        (r_dir / name).write_text("stale\n", encoding="utf-8")
     unrelated_stata = stata_dir / "manual_notes.txt"
+    unrelated_r = r_dir / "manual_notes.txt"
     unrelated_root = tmp_path / "keep-me.csv"
     unrelated_stata.write_text("keep\n", encoding="utf-8")
+    unrelated_r.write_text("keep\n", encoding="utf-8")
     unrelated_root.write_text("keep\n", encoding="utf-8")
 
     preparation._remove_stale_evidence(tmp_path)
 
     assert all(not (stata_dir / name).exists() for name in STATA_ARTIFACTS)
     assert all(not (tmp_path / name).exists() for name in COMPARISON_ARTIFACTS)
+    assert all(not (r_dir / name).exists() for name in R_ARTIFACTS)
     assert unrelated_stata.read_text(encoding="utf-8") == "keep\n"
+    assert unrelated_r.read_text(encoding="utf-8") == "keep\n"
     assert unrelated_root.read_text(encoding="utf-8") == "keep\n"
+
+
+def test_comparator_invalidates_prior_evidence_before_validation(tmp_path: Path) -> None:
+    comparator = _load_script("compare_parity.py")
+    stata_dir = tmp_path / "stata"
+    stata_dir.mkdir()
+    for name in COMPARISON_ARTIFACTS:
+        (tmp_path / name).write_text("stale\n", encoding="utf-8")
+    for name in CANONICAL_ARTIFACTS:
+        (stata_dir / name).write_text("stale\n", encoding="utf-8")
+    unrelated = tmp_path / "keep.txt"
+    unrelated.write_text("keep\n", encoding="utf-8")
+
+    comparator._invalidate_comparison_evidence(tmp_path)
+
+    assert all(not (tmp_path / name).exists() for name in COMPARISON_ARTIFACTS)
+    assert all(not (stata_dir / name).exists() for name in CANONICAL_ARTIFACTS)
+    assert unrelated.read_text(encoding="utf-8") == "keep\n"
 
 
 @pytest.mark.parametrize(
