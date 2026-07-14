@@ -19,8 +19,9 @@ intercept implicitly.
 
 ## Input and identification contract
 
-- `X` must be finite, two-dimensional, full rank, and contain more rows than
-  columns.
+- `X` must be finite and full rank, with more rows than columns. A
+  one-dimensional array is accepted for a single feature; otherwise pass a
+  two-dimensional array or DataFrame.
 - DataFrame column names must be unique and prediction columns must match the
   fitted names and order.
 - `y` must be one-dimensional, contain only `0` and `1`, and contain both

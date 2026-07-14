@@ -13,7 +13,7 @@ The supported alpha API contains six estimators:
 
 ## Common data contract
 
-Pass a two-dimensional numeric NumPy array or pandas DataFrame as `X` and a
+Pass a numeric NumPy array or pandas DataFrame as `X` and a
 one-dimensional outcome as `y`. DataFrames are recommended because fitted
 feature names are then retained. Do not include a constant column: ordinal
 thresholds identify the model location. Missing or non-finite design values are

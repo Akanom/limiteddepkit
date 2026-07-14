@@ -51,6 +51,8 @@ def test_dynamic_ordered_logit_contract(fitted_dynamic_model):
     assert len(result.initial_condition_params) == 2
     assert len(result.initial_covariate_params) == X.shape[1]
     assert len(result.correlated_effects_params) == X.shape[1]
+    assert result.quadrature_points == 8
+    assert result.n_quadrature_points == result.quadrature_points
     assert result.backend == "native-dynamic-ghq"
     assert result.fitted_probabilities.shape == (result.nobs, 3)
 

@@ -45,3 +45,19 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "python -m twine check --strict dist/*" in contributing
     assert "Verify release tag matches package version" in publish_workflow
     assert "prune _out_of_scope" in manifest
+    assert "recursive-include validation/stata *.do *.md *.ps1 *.py" in manifest
+    assert "prune validation/stata/work" in manifest
+
+
+def test_documentation_does_not_overstate_unrun_stata_parity():
+    readme = _read("README.md")
+    parity_guide = _read("validation/stata/README.md")
+    validation = _read("docs/VALIDATION.md")
+
+    assert "PREPARED — AWAITING MANUAL STATA RUN" in readme
+    assert "PREPARED / AWAITING MANUAL STATA EXECUTION" in parity_guide
+    assert "No external Stata pass claimed" in readme
+    assert "awaiting the manual Stata run" in validation
+    combined = "\n".join([readme, parity_guide, validation])
+    assert "PASS_STATA_PARITY" not in combined
+    assert "PASS_STATA_COMPARISON" not in combined

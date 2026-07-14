@@ -103,6 +103,16 @@ class DynamicRandomEffectsOrderedLogitResult:
         return self.base_result.n_params
 
     @property
+    def quadrature_points(self) -> int:
+        """Number of Gaussian-Hermite nodes used by the fitted likelihood."""
+        return self.base_result.quadrature_points
+
+    @property
+    def n_quadrature_points(self) -> int:
+        """Alias matching the static random-effects result contract."""
+        return self.base_result.n_quadrature_points
+
+    @property
     def backend(self) -> str:
         return "native-dynamic-ghq"
 

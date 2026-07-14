@@ -28,6 +28,9 @@ support claim.
 
 - [Validation overview](VALIDATION.md) records the maintained reference and
   simulation-recovery boundary.
+- [Stata parity harness](../validation/stata/README.md) provides controlled
+  deterministic certification fixtures and a separate downloaded-real-data
+  application track for the stable binary and ordinal estimators.
 - [Dynamic ordinal numerical validation](DYNAMIC_ORDINAL_VALIDATION.md) records
   quadrature-convergence and invariance certification.
 

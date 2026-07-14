@@ -38,3 +38,33 @@ The dynamic numerical certificate additionally compares 12- and 20-point
 quadrature and checks invariance to row ordering, arbitrary entity relabeling,
 and shifted time origins. Exact maintained tolerances are documented in
 `DYNAMIC_ORDINAL_VALIDATION.md`.
+
+## Manual Stata parity gate
+
+The stable binary and ordinal surface has two reproducible manual Stata tracks
+under `validation/stata/`:
+
+| Track | Purpose | Current status |
+|---|---|---|
+| Controlled deterministic fixtures | Strict, implementation-level release gate | Prepared; awaiting the manual Stata run |
+| Downloaded Stata Press examples | Independent application check on non-simulated observations | Prepared; awaiting the manual Stata run |
+
+The controlled track remains the certification benchmark. The application
+track uses pinned, hash-verified `lbw`, `tvsfpors`, and `nlswork` files and must
+not be used to broaden a benchmark-specific certification claim. The source
+datasets are downloaded into the ignored working directory and are not
+redistributed by the package.
+
+Both tracks export raw Stata `e(b)` and full `e(V)` results, observation and
+group counts, parameter counts, log likelihood, information criteria,
+convergence state, and selected probabilities. The Python comparator applies
+documented cutpoint, flexible-ordinal intercept, and random-effect scale
+transformations; checks the prepared-file hashes; and writes CSV, Markdown, and
+JSON evidence. Panel commands use nonadaptive Gauss-Hermite quadrature with the
+same node count as the toolkit and compare fixed-part probabilities at a random
+effect of zero.
+
+No Stata parity result is claimed until the returned Stata files have been
+compared successfully. See the [parity guide](../validation/stata/README.md) for
+the complete commands, tolerances, data provenance, optional `gologit2` checks,
+and allowed claim language.

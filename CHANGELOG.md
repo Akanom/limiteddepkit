@@ -21,6 +21,11 @@ No changes yet.
   Output Hub workflows for supported ordinal results.
 - Maintained numerical-reference, recovery, quadrature-convergence, and
   invariance validation tests.
+- Deterministic manual Stata parity harness for the stable binary and ordinal
+  estimators, including raw covariance and prediction exports.
+- Separate hash-pinned Stata Press real-data application harness, with
+  provenance-preserving downloads, full fit/covariance exports, and
+  machine-readable comparison evidence.
 - Experimental namespace for provisional non-ordinal model families.
 - Experimental fixed-boundary censored quantile regression with multi-start
   Powell check-loss fitting and opt-in pairs-bootstrap inference.

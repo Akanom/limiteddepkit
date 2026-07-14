@@ -6,4 +6,6 @@ include README.md
 include RELEASING.md
 include SECURITY.md
 recursive-include docs *.md
+recursive-include validation/stata *.do *.md *.ps1 *.py
+prune validation/stata/work
 prune _out_of_scope
