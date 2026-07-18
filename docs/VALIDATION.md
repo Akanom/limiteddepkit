@@ -120,7 +120,7 @@ discrete exact stayers, one known state cutoff, and the documented restricted st
 
 ## Python reference-package gates
 
-The experimental `limiteddepkit.ml` layer is checked against scikit-learn for
+The stable `limiteddepkit.ml` workflow layer is checked against scikit-learn for
 every directly equivalent score: binary and multiclass log loss and Brier
 score, accuracy, balanced accuracy, ROC AUC, ordinal encoded MAE, fixed-choice-
 set scores, continuous/count MAE and RMSE, mean Poisson deviance, and quantile

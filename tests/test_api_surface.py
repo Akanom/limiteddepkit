@@ -224,7 +224,7 @@ def test_experimental_namespace_exports_every_provisional_estimator():
     assert all(hasattr(experimental, name) for name in PROVISIONAL_EXPORTS)
 
 
-def test_ml_workflow_is_public_only_from_its_experimental_submodule():
+def test_ml_workflow_is_stable_public_submodule_without_root_exports():
     assert set(ml.__all__) >= ML_WORKFLOW_EXPORTS
     assert all(hasattr(ml, name) for name in ML_WORKFLOW_EXPORTS)
     assert ML_WORKFLOW_EXPORTS.isdisjoint(limiteddepkit.__all__)

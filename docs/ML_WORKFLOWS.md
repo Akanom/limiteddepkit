@@ -1,6 +1,6 @@
 # Probability-aware validation and ML-style workflows
 
-`limiteddepkit.ml` is an **experimental** workflow layer around the package's fitted
+`limiteddepkit.ml` is a stable public workflow layer around the package's fitted
 econometric models. Its one optional neural challenger is prediction-only; it does not
 replace identification, likelihood, inference, or cross-software validation. The layer's
 main purpose is to make out-of-sample probability evaluation, leakage-safe splitting,
@@ -580,14 +580,16 @@ the external result has reliable convergence/inference flags, or set
 prediction-only exercise. The latter makes a model scoreable; it does not certify its
 inference.
 
-## Experimental contract
+## Stable workflow contract
 
-- `limiteddepkit.ml` is outside the stable root API for `0.1.0a1`.
+- `limiteddepkit.ml` is a stable public submodule, but its symbols are not re-exported
+  from the package root.
 - `prediction_target="conditional"` requires a custom `predict=` callback that estimates
   effects from each training fold or uses effects known independently of held-out outcomes;
   externally supplied full-sample posterior effects are not accepted by the default CV path.
 - Scores assess predictive behavior; they do not certify estimator correctness.
 - Cross-validation does not justify choosing regressors, restrictions, or random-effects
   assumptions without substantive identification arguments.
-- Stable promotion requires deterministic tests, documented estimands, result-contract
-  compatibility, and cross-software evidence where a reference implementation exists.
+- New workflow helpers require deterministic tests, documented estimands,
+  result-contract compatibility, and cross-software evidence where a reference
+  implementation exists.

@@ -1,9 +1,10 @@
-"""Experimental probability-aware validation and ML-style workflows.
+"""Stable probability-aware validation and ML-style workflows.
 
-This submodule is deliberately outside the stable package-root contract for
-``0.1.0a1``.  It evaluates fitted econometric estimators and includes one
-optional neural prediction challenger; it does not weaken identification
-requirements or turn prediction diagnostics into econometric inference.
+This submodule is a stable public workflow layer, but its symbols are not
+re-exported from the package root.  It evaluates fitted econometric estimators
+and includes one optional neural prediction challenger; it does not weaken
+identification requirements or turn prediction diagnostics into econometric
+inference.
 """
 
 from .adapter import ResultEligibility, infer_outcome, result_eligibility

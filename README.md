@@ -326,7 +326,7 @@ print(limiteddepkit.__version__)
 - ordinal probability and effect plots
 - Universal Output Hub conversion for supported ordinal results
 
-## Experimental workflow layer
+## Stable workflow layer
 
 - outcome-aware scoring for binary, ordinal, count, continuous, quantile, duration,
   grouped-choice, and selection outcomes
@@ -917,7 +917,7 @@ receive a pooled AME table.
 
 # Probability-Aware ML and Diagnostic Layer
 
-`limiteddepkit.ml` is experimental and dependency-light. It operates around fitted
+`limiteddepkit.ml` is stable and dependency-light. It operates around fitted
 econometric models without changing their likelihoods or identification assumptions.
 
 ## Outcome-aware scores

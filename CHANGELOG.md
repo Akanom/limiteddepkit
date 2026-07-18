@@ -48,7 +48,7 @@ pre-release phase.
   posterior-prediction, simulation, and Output Hub contracts. Its conditional kernel is
   checked against Statsmodels and its marginal probabilities against the exact normal-
   convolution identity.
-- Experimental `limiteddepkit.ml` workflow with dependency-light iid,
+- Stable `limiteddepkit.ml` workflow submodule with dependency-light iid,
   stratified, complete-group, and forward-panel splitters; binary, multinomial,
   ordinal, grouped-choice, count, continuous, quantile, duration, and selection
   scores; out-of-fold predictions; and validity-gated model comparison.

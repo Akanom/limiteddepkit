@@ -41,7 +41,7 @@ change those estimators' stable status.
 - [Experimental model status](EXPERIMENTAL_MODELS.md) records validation
   evidence, remaining promotion gates, and package-scope decisions.
 - [Probability-aware validation workflows](ML_WORKFLOWS.md) document the
-  experimental outcome-specific scoring, grouped and temporal splitting,
+  stable outcome-specific scoring, grouped and temporal splitting,
   out-of-fold prediction, and validity-gated comparison layer.
 - [Open development](OPEN_DEVELOPMENT.md) explains how public issues,
   discussions, parity reports, and adoption notes should record future model
