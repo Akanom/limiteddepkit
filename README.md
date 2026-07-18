@@ -205,10 +205,11 @@ from limiteddepkit.small_sample import FirthBinaryLogit
 
 # Installation
 
-Python 3.10 or newer is required.
+Python 3.10 or newer is required. Install the current alpha release from PyPI:
 
-The repository does not currently claim a public PyPI release. Install the current
-development version from a checkout:
+    python -m pip install limiteddepkit
+
+For the newest development version, install from a checkout:
 
 ```bash
 git clone https://github.com/Akanom/limiteddepkit.git
