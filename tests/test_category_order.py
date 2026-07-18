@@ -12,6 +12,7 @@ from limiteddepkit import (
     OrderedProbit,
     PartialProportionalOdds,
     RandomEffectsOrderedLogit,
+    RandomEffectsOrderedProbit,
     simulate_dynamic_random_effects_ordered_logit,
 )
 
@@ -102,14 +103,17 @@ def _make_panel(seed=5108, n_entities=30, n_periods=4):
     return X, _labels(codes), entity
 
 
-def test_random_effects_model_honors_explicit_and_categorical_order():
+@pytest.mark.parametrize(
+    "estimator_type", [RandomEffectsOrderedLogit, RandomEffectsOrderedProbit]
+)
+def test_random_effects_model_honors_explicit_and_categorical_order(estimator_type):
     X, labels, entity = _make_panel()
     fit_options = {"entity": entity, "quadrature_points": 5, "maxiter": 500}
 
-    explicit = RandomEffectsOrderedLogit().fit(
+    explicit = estimator_type().fit(
         X, labels, category_order=CATEGORY_ORDER, **fit_options
     )
-    categorical = RandomEffectsOrderedLogit().fit(
+    categorical = estimator_type().fit(
         X, _ordered_categorical(labels), **fit_options
     )
 

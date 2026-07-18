@@ -1,0 +1,26 @@
+name: Model proposal
+description: Propose a scoped estimator or model-family improvement.
+title: "Model: "
+labels:
+  - enhancement
+  - model-proposal
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Proposed model
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and boundaries
+      description: Explain what should be supported and what should remain out of scope.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation route
+      description: List reference implementations, simulations, public data, and docs needed for promotion.
+

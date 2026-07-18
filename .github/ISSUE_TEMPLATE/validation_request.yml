@@ -1,0 +1,25 @@
+name: Validation request
+description: Propose or report a concrete validation or parity check.
+title: "Validation: "
+labels:
+  - validation
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Model family
+    validations:
+      required: true
+  - type: textarea
+    id: benchmark
+    attributes:
+      label: Benchmark target
+      description: Name the reference software, paper, dataset, or statistical identity.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: State which quantities should agree and the intended tolerance.
+

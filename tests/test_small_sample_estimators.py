@@ -71,7 +71,7 @@ def test_firth_matches_half_cell_correction_under_complete_separation() -> None:
     assert result.step_halvings >= 0
     assert result.backend == "native-firth-adjusted-score"
     assert result.covariance_type == "inverse-ordinary-fisher-at-bias-reduced-estimate"
-    assert "profile penalized-likelihood inference is not computed" in result.inference_note
+    assert "conf_int defaults to profile penalized-likelihood intervals" in result.inference_note
     assert result.penalized_loglike == pytest.approx(
         result.loglike + result.jeffreys_penalty
     )
@@ -212,4 +212,3 @@ def test_small_sample_estimators_reject_invalid_identification_and_penalties() -
         )
     with pytest.raises(ValueError, match="strictly positive"):
         RidgeOrderedLogit().fit(ordered_design, ordered_outcomes, penalty=-1.0)
-

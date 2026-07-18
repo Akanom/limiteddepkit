@@ -4,7 +4,7 @@ import pytest
 from scipy.special import log_ndtr, ndtr
 from scipy.stats import norm
 
-from limiteddepkit.experimental import Tobit
+from limiteddepkit import Tobit
 
 
 def _censored_sample(seed=13, nobs=700):
@@ -29,6 +29,16 @@ def test_tobit_recovers_parameters_and_matches_manual_likelihood():
     )
     manual_loglike += np.sum(log_ndtr(-mean[~uncensored] / result.sigma))
     assert result.loglike == pytest.approx(manual_loglike, abs=1e-8)
+
+
+def test_tobit_loose_tolerance_still_requires_stationarity():
+    X, y = _censored_sample(nobs=350)
+    result = Tobit().fit(X, y, tolerance=1e6)
+
+    assert result.converged
+    assert result.inference_valid
+    assert result.scaled_score_norm <= 1e-4
+    assert result.optimizer_result.nit > 0
 
 
 def test_tobit_result_contract_includes_dispersion_and_observed_mean_prediction():
@@ -90,3 +100,80 @@ def test_tobit_rejects_invalid_outcomes_designs_and_prediction_schema():
         result.predict(X[["x", "const"]])
     with pytest.raises(ValueError, match="which"):
         result.predict(X, which="clipped")
+
+
+def test_right_censored_tobit_matches_reflected_left_censored_problem():
+    rng = np.random.default_rng(1302)
+    X = pd.DataFrame({"const": 1.0, "x": rng.normal(size=520)})
+    latent = 0.4 + 0.7 * X["x"].to_numpy() + rng.normal(size=len(X))
+    observed = np.minimum(latent, 0.0)
+
+    right = Tobit(side="right").fit(X, observed)
+    reflected = Tobit(side="left").fit(X, -observed)
+
+    np.testing.assert_allclose(right.params, -reflected.params, rtol=1e-10, atol=1e-10)
+    assert right.sigma == pytest.approx(reflected.sigma, rel=1e-12)
+    assert right.loglike == pytest.approx(reflected.loglike, abs=1e-10)
+    np.testing.assert_allclose(
+        right.predict(X.iloc[:20]),
+        -reflected.predict(X.iloc[:20]),
+        rtol=1e-10,
+        atol=1e-10,
+    )
+    np.testing.assert_allclose(
+        right.predict(X.iloc[:20], which="censoring_probability"),
+        reflected.predict(X.iloc[:20], which="censoring_probability"),
+        rtol=1e-12,
+    )
+
+
+def test_tobit_supports_robust_and_clustered_sandwich_covariance():
+    X, y = _censored_sample(seed=1303, nobs=420)
+    robust = Tobit().fit(X, y, covariance_type="robust")
+    clusters = np.arange(len(X)) // 7
+    clustered = Tobit().fit(
+        X,
+        y,
+        covariance_type="cluster",
+        clusters=clusters,
+    )
+
+    assert robust.covariance_type == "robust"
+    assert robust.n_clusters is None
+    assert clustered.covariance_type == "cluster"
+    assert clustered.n_clusters == len(np.unique(clusters))
+    assert np.isfinite(robust.standard_errors).all()
+    assert np.isfinite(clustered.standard_errors).all()
+    assert not np.allclose(robust.covariance, clustered.covariance)
+
+    with pytest.raises(ValueError, match="clusters is required"):
+        Tobit().fit(X, y, covariance_type="cluster")
+    with pytest.raises(ValueError, match="only with"):
+        Tobit().fit(X, y, clusters=clusters)
+    with pytest.raises(ValueError, match="one label per observation"):
+        Tobit().fit(X, y, covariance_type="cluster", clusters=clusters[:-1])
+    with pytest.raises(ValueError, match="at least two"):
+        Tobit().fit(X, y, covariance_type="cluster", clusters=np.zeros(len(X)))
+    missing_clusters = clusters.astype(float)
+    missing_clusters[0] = np.nan
+    with pytest.raises(ValueError, match="missing"):
+        Tobit().fit(X, y, covariance_type="cluster", clusters=missing_clusters)
+    with pytest.raises(ValueError, match="covariance_type"):
+        Tobit().fit(X, y, covariance_type="HC3")
+    with pytest.raises(ValueError, match="side"):
+        Tobit(side="both")
+
+
+def test_tobit_common_latent_distribution_postestimation_is_schema_safe():
+    X, y = _censored_sample(seed=1304, nobs=240)
+    result = Tobit().fit(X, y)
+    subset = X.iloc[:9]
+    latent = result.predict_latent(subset)
+    cdf = result.predict_latent_cdf(subset, 0.0)
+    interval = result.predict_latent_interval(subset, level=0.9)
+
+    np.testing.assert_allclose(latent, result.predict(subset, which="latent"))
+    np.testing.assert_allclose(cdf, norm.cdf(-latent / result.sigma))
+    assert interval.index.equals(subset.index)
+    assert (interval["lower"] < latent).all()
+    assert (latent < interval["upper"]).all()

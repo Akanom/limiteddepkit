@@ -7,13 +7,13 @@ from typing import Any
 from ..dynamic_ordinal import DynamicRandomEffectsOrderedLogitResult
 from ..generalized_ordinal import GeneralizedOrderedLogitResult, PartialProportionalOddsResult
 from ..ordinal import OrderedResult, ProportionalOddsTestResult
-from ..panel_ordinal import RandomEffectsOrderedLogitResult
+from ..panel_ordinal import RandomEffectsOrderedResult
 
 OutputHubOrdinalResult = (
     OrderedResult
     | GeneralizedOrderedLogitResult
     | PartialProportionalOddsResult
-    | RandomEffectsOrderedLogitResult
+    | RandomEffectsOrderedResult
     | DynamicRandomEffectsOrderedLogitResult
 )
 
@@ -55,11 +55,12 @@ def _result_profile(result: OutputHubOrdinalResult) -> dict[str, Any]:
                 "Constraint slack": result.constraint_slack,
             },
         }
-    if isinstance(result, RandomEffectsOrderedLogitResult):
+    if isinstance(result, RandomEffectsOrderedResult):
+        titled_link = result.link.title()
         return {
-            "default_name": "Random-effects Ordered Logit",
-            "estimator": "random_effects_ordered_logit",
-            "link": "logit",
+            "default_name": f"Random-effects Ordered {titled_link}",
+            "estimator": f"random_effects_ordered_{result.link}",
+            "link": result.link,
             "threshold_parameterization": "ordered cuts",
             "metadata": {
                 "inference_valid": result.inference_valid,

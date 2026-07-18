@@ -10,12 +10,14 @@ import numpy as np
 import pandas as pd
 from numpy.polynomial.hermite import hermgauss
 from scipy.optimize import minimize
-from scipy.special import expit, log_expit, logsumexp, ndtr
+from scipy.special import log_expit, log_ndtr, logsumexp, ndtr
 from scipy.stats import norm
 
 from .ordinal import (
     OrderedLogit,
+    OrderedProbit,
     _as_2d_array,
+    _link_cdf,
     _numerical_hessian,
     _ordered_categories,
     _threshold_jacobian,
@@ -29,22 +31,39 @@ def _selected_log_probabilities(
     beta: np.ndarray,
     thresholds: np.ndarray,
     random_intercept: float,
+    link: str,
 ) -> np.ndarray:
     """Stable log probabilities for observed ordinal categories."""
     n_thresholds = thresholds.size
     indices = thresholds[None, :] - values @ beta[:, None] - random_intercept
-    log_cumulative = log_expit(indices)
+    if link == "logit":
+        log_cumulative = log_expit(indices)
+        log_survival = log_expit(-indices[:, -1])
+    elif link == "probit":
+        log_cumulative = log_ndtr(indices)
+        log_survival = log_ndtr(-indices[:, -1])
+    else:
+        raise ValueError(f"Unsupported panel ordinal link: {link!r}.")
     selected_log_probabilities = np.empty(encoded.size, dtype=float)
     first = encoded == 0
     last = encoded == n_thresholds
     selected_log_probabilities[first] = log_cumulative[first, 0]
-    selected_log_probabilities[last] = log_expit(-indices[last, -1])
+    selected_log_probabilities[last] = log_survival[last]
     for category in range(1, n_thresholds):
         selected = encoded == category
-        log_ratio = (
-            log_cumulative[selected, category - 1] - log_cumulative[selected, category]
-        )
-        selected_log_probabilities[selected] = log_cumulative[selected, category] + np.log(
+        if link == "probit":
+            lower_index = indices[selected, category - 1]
+            upper_index = indices[selected, category]
+            use_survival = lower_index > 0.0
+            log_larger = log_ndtr(upper_index)
+            log_smaller = log_ndtr(lower_index)
+            log_larger[use_survival] = log_ndtr(-lower_index[use_survival])
+            log_smaller[use_survival] = log_ndtr(-upper_index[use_survival])
+        else:
+            log_larger = log_cumulative[selected, category]
+            log_smaller = log_cumulative[selected, category - 1]
+        log_ratio = log_smaller - log_larger
+        selected_log_probabilities[selected] = log_larger + np.log(
             -np.expm1(np.minimum(log_ratio, -1e-15))
         )
     return selected_log_probabilities
@@ -69,9 +88,12 @@ def _conditional_probabilities(
     beta: np.ndarray,
     thresholds: np.ndarray,
     random_effects: np.ndarray,
+    link: str,
 ) -> np.ndarray:
     linear_predictor = values @ beta + random_effects
-    cumulative = expit(thresholds[None, :] - linear_predictor[:, None])
+    cumulative = _link_cdf(
+        thresholds[None, :] - linear_predictor[:, None], link
+    )
     bounds = np.column_stack(
         [np.zeros(values.shape[0]), cumulative, np.ones(values.shape[0])]
     )
@@ -107,8 +129,8 @@ def _resolved_random_effects(
 
 
 @dataclass(frozen=True)
-class RandomEffectsOrderedLogitResult:
-    """Random-intercept Ordered Logit result."""
+class RandomEffectsOrderedResult:
+    """Shared result contract for random-intercept ordered-response models."""
 
     params: pd.Series
     thresholds: pd.Series
@@ -120,12 +142,15 @@ class RandomEffectsOrderedLogitResult:
     inference_valid: bool
     categories: np.ndarray
     converged: bool
+    score_norm: float
+    scaled_score_norm: float
     loglike: float
     nobs: int
     n_groups: int
     feature_names: tuple[str, ...]
     quadrature_points: int
     optimizer_result: Any
+    link: str = "logit"
 
     @property
     def all_params(self) -> pd.Series:
@@ -222,12 +247,15 @@ class RandomEffectsOrderedLogitResult:
                     beta,
                     thresholds,
                     np.full(values.shape[0], random_intercept),
+                    self.link,
                 )
         else:
             effects = _resolved_random_effects(
                 random_effects, nobs=values.shape[0], entity=entity
             )
-            probabilities = _conditional_probabilities(values, beta, thresholds, effects)
+            probabilities = _conditional_probabilities(
+                values, beta, thresholds, effects, self.link
+            )
         return pd.DataFrame(probabilities, columns=self.categories)
 
     def predict(
@@ -278,6 +306,7 @@ class RandomEffectsOrderedLogitResult:
                         beta,
                         thresholds,
                         float(random_intercept),
+                        self.link,
                     )
                 )
             log_marginal = float(logsumexp(log_posterior))
@@ -353,13 +382,33 @@ class RandomEffectsOrderedLogitResult:
                     beta,
                     thresholds,
                     np.full(len(selected), random_intercept),
+                    self.link,
                 )
             probabilities[selected] = group_probabilities
         return pd.DataFrame(probabilities, columns=self.categories)
 
 
-class RandomEffectsOrderedLogit:
-    """Random-intercept Ordered Logit estimated by quadrature likelihood."""
+@dataclass(frozen=True)
+class RandomEffectsOrderedLogitResult(RandomEffectsOrderedResult):
+    """Random-intercept Ordered Logit result."""
+
+    link: str = "logit"
+
+
+@dataclass(frozen=True)
+class RandomEffectsOrderedProbitResult(RandomEffectsOrderedResult):
+    """Random-intercept Ordered Probit result."""
+
+    link: str = "probit"
+
+
+class _RandomEffectsOrdered:
+    """Shared non-adaptive GHQ estimator for random-intercept ordered models."""
+
+    _link: str
+    _model_label: str
+    _pooled_estimator: type[OrderedLogit] | type[OrderedProbit]
+    _result_type: type[RandomEffectsOrderedResult]
 
     def fit(
         self,
@@ -371,7 +420,7 @@ class RandomEffectsOrderedLogit:
         quadrature_points: int = 12,
         maxiter: int = 1_000,
         tolerance: float = 1e-8,
-    ) -> RandomEffectsOrderedLogitResult:
+    ) -> RandomEffectsOrderedResult:
         values, feature_names = _as_2d_array(X)
         encoded, categories = _ordered_categories(y, category_order=category_order)
         entities = np.asarray(entity)
@@ -379,8 +428,16 @@ class RandomEffectsOrderedLogit:
             raise ValueError("X, y, and entity must contain the same number of observations.")
         if pd.isna(entities).any():
             raise ValueError("entity contains missing values.")
-        if quadrature_points < 3:
+        if (
+            isinstance(quadrature_points, bool)
+            or not isinstance(quadrature_points, (int, np.integer))
+            or quadrature_points < 3
+        ):
             raise ValueError("quadrature_points must be at least three.")
+        if isinstance(maxiter, bool) or not isinstance(maxiter, (int, np.integer)) or maxiter < 1:
+            raise ValueError("maxiter must be a positive integer.")
+        if not np.isfinite(tolerance) or tolerance <= 0.0:
+            raise ValueError("tolerance must be finite and positive.")
         constant_features = [
             feature_names[index]
             for index in range(values.shape[1])
@@ -400,7 +457,7 @@ class RandomEffectsOrderedLogit:
                 "Random-effects estimation requires repeated observations within entities."
             )
 
-        pooled = OrderedLogit().fit(X, y, category_order=categories)
+        pooled = self._pooled_estimator().fit(X, y, category_order=categories)
         n_features = values.shape[1]
         n_thresholds = categories.size - 1
         pooled_thresholds = pooled.thresholds.to_numpy(dtype=float)
@@ -423,23 +480,14 @@ class RandomEffectsOrderedLogit:
             node_log_probabilities = np.empty((len(nodes), values.shape[0]), dtype=float)
             for node_index, node in enumerate(nodes):
                 random_intercept = np.sqrt(2.0) * sigma * node
-                indices = thresholds[None, :] - values @ beta[:, None] - random_intercept
-                log_cumulative = log_expit(indices)
-                selected_log_probabilities = np.empty(encoded.size, dtype=float)
-                first = encoded == 0
-                last = encoded == n_thresholds
-                selected_log_probabilities[first] = log_cumulative[first, 0]
-                selected_log_probabilities[last] = log_expit(-indices[last, -1])
-                for category in range(1, n_thresholds):
-                    selected = encoded == category
-                    log_ratio = (
-                        log_cumulative[selected, category - 1]
-                        - log_cumulative[selected, category]
-                    )
-                    selected_log_probabilities[selected] = log_cumulative[
-                        selected, category
-                    ] + np.log(-np.expm1(np.minimum(log_ratio, -1e-15)))
-                node_log_probabilities[node_index] = selected_log_probabilities
+                node_log_probabilities[node_index] = _selected_log_probabilities(
+                    values,
+                    encoded,
+                    beta,
+                    thresholds,
+                    float(random_intercept),
+                    self._link,
+                )
             loglike = 0.0
             for rows in group_rows:
                 conditional_group_loglike = node_log_probabilities[:, rows].sum(axis=1)
@@ -451,12 +499,28 @@ class RandomEffectsOrderedLogit:
             initial,
             method="L-BFGS-B",
             bounds=[(None, None)] * (initial.size - 1) + [(-10.0, 4.0)],
-            options={"maxiter": maxiter, "ftol": tolerance},
+            options={
+                "maxiter": int(maxiter),
+                "ftol": min(float(tolerance), 1e-12),
+                "gtol": min(float(tolerance), 1e-5),
+                "maxls": 50,
+            },
         )
         if not np.isfinite(fitted.fun):
-            raise RuntimeError("Random-effects Ordered Logit produced a non-finite likelihood.")
+            raise RuntimeError(
+                f"Random-effects {self._model_label} produced a non-finite likelihood."
+            )
 
         beta, thresholds, sigma = unpack(fitted.x)
+        score_norm = float(np.linalg.norm(np.asarray(fitted.jac), ord=np.inf))
+        scaled_score_norm = score_norm / max(1, values.shape[0])
+        stationarity_limit = max(min(100.0 * float(tolerance), 1e-4), 1e-5)
+        converged = bool(
+            np.isfinite(fitted.fun)
+            and np.isfinite(fitted.x).all()
+            and np.isfinite(scaled_score_norm)
+            and scaled_score_norm <= stationarity_limit
+        )
         threshold_names = [
             f"{categories[index]} | {categories[index + 1]}"
             for index in range(n_thresholds)
@@ -468,14 +532,26 @@ class RandomEffectsOrderedLogit:
         )
         information = _numerical_hessian(negative_loglike, fitted.x)
         information = (information + information.T) / 2.0
-        information_eigenvalues = np.linalg.eigvalsh(information)
+        information_eigenvalues = (
+            np.linalg.eigvalsh(information)
+            if np.isfinite(information).all()
+            else np.array([np.nan])
+        )
+        maximum_eigenvalue = float(np.max(information_eigenvalues))
+        minimum_eigenvalue = float(np.min(information_eigenvalues))
         inference_valid = bool(
-            fitted.success
+            converged
             and fitted.x[-1] > -9.5
             and np.isfinite(information_eigenvalues).all()
-            and np.min(information_eigenvalues) > 1e-8
+            and maximum_eigenvalue > 0.0
+            and minimum_eigenvalue > 0.0
+            and minimum_eigenvalue / maximum_eigenvalue > 1e-12
         )
-        raw_covariance = np.linalg.pinv(information)
+        raw_covariance = (
+            np.linalg.pinv(information)
+            if np.isfinite(information).all()
+            else np.full_like(information, np.nan)
+        )
         transformation = np.eye(fitted.x.size)
         transformation[
             n_features : n_features + n_thresholds,
@@ -484,6 +560,7 @@ class RandomEffectsOrderedLogit:
         transformation[-1, -1] = sigma
         covariance_values = transformation @ raw_covariance @ transformation.T
         covariance_values = (covariance_values + covariance_values.T) / 2.0
+        inference_valid = bool(inference_valid and np.isfinite(covariance_values).all())
         reported_parameters = np.r_[beta, thresholds, sigma]
         standard_errors = np.sqrt(np.clip(np.diag(covariance_values), 0.0, None))
         zstats = np.divide(
@@ -500,7 +577,7 @@ class RandomEffectsOrderedLogit:
             standard_errors[:] = np.nan
             zstats[:] = np.nan
             pvalues[:] = np.nan
-        return RandomEffectsOrderedLogitResult(
+        return self._result_type(
             params=pd.Series(beta, index=feature_names, name="coefficient"),
             thresholds=pd.Series(thresholds, index=threshold_names, name="threshold"),
             sigma_entity=sigma,
@@ -514,11 +591,32 @@ class RandomEffectsOrderedLogit:
             pvalues=pd.Series(pvalues, index=parameter_names, name="p_value"),
             inference_valid=inference_valid,
             categories=categories,
-            converged=bool(fitted.success),
+            converged=converged,
+            score_norm=score_norm,
+            scaled_score_norm=scaled_score_norm,
             loglike=float(-fitted.fun),
             nobs=values.shape[0],
             n_groups=unique_entities.size,
             feature_names=tuple(feature_names),
             quadrature_points=quadrature_points,
             optimizer_result=fitted,
+            link=self._link,
         )
+
+
+class RandomEffectsOrderedLogit(_RandomEffectsOrdered):
+    """Random-intercept Ordered Logit estimated by quadrature likelihood."""
+
+    _link = "logit"
+    _model_label = "Ordered Logit"
+    _pooled_estimator = OrderedLogit
+    _result_type = RandomEffectsOrderedLogitResult
+
+
+class RandomEffectsOrderedProbit(_RandomEffectsOrdered):
+    """Random-intercept Ordered Probit estimated by quadrature likelihood."""
+
+    _link = "probit"
+    _model_label = "Ordered Probit"
+    _pooled_estimator = OrderedProbit
+    _result_type = RandomEffectsOrderedProbitResult

@@ -11,7 +11,7 @@ result = OrderedLogit().fit(
 ```
 
 The same option is available for Ordered Probit, Generalized Ordered Logit,
-Partial Proportional Odds, random-effects Ordered Logit, and dynamic random-
+Partial Proportional Odds, random-effects Ordered Logit/Probit, and dynamic random-
 effects Ordered Logit. The fitted order is retained by thresholds, probability
 columns, predictions, state-dependence indicators, and initial-condition
 controls.

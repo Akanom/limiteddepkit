@@ -89,7 +89,7 @@ def _ordered_categories(
         )
     categories = np.asarray(ordered_values, dtype=object)
     if categories.size < 3:
-        raise ValueError("Ordered Logit requires at least three observed categories.")
+        raise ValueError("Ordered models require at least three observed categories.")
     category_positions = {category: index for index, category in enumerate(categories)}
     encoded = np.array([category_positions[value] for value in values], dtype=int)
     return encoded.astype(int), categories
@@ -197,6 +197,8 @@ class OrderedResult:
     inference_valid: bool
     categories: np.ndarray
     converged: bool
+    score_norm: float
+    scaled_score_norm: float
     loglike: float
     nobs: int
     feature_names: tuple[str, ...]
@@ -641,6 +643,12 @@ class _OrderedModel:
         encoded, categories = _ordered_categories(y, category_order=category_order)
         if values.shape[0] != encoded.size:
             raise ValueError("X and y must contain the same number of observations.")
+        if isinstance(maxiter, bool) or not isinstance(maxiter, (int, np.integer)) or maxiter < 1:
+            raise ValueError("maxiter must be a positive integer.")
+        if not np.isfinite(tolerance) or tolerance <= 0.0:
+            raise ValueError("tolerance must be finite and positive.")
+        if len(set(feature_names)) != len(feature_names):
+            raise ValueError("X feature names must be unique after conversion to strings.")
         constant_features = [
             feature_names[index]
             for index in range(values.shape[1])
@@ -677,7 +685,12 @@ class _OrderedModel:
             negative_loglike,
             initial,
             method="L-BFGS-B",
-            options={"maxiter": maxiter, "ftol": tolerance},
+            options={
+                "maxiter": int(maxiter),
+                "ftol": min(float(tolerance), 1e-12),
+                "gtol": min(float(tolerance), 1e-5),
+                "maxls": 50,
+            },
         )
         if not np.isfinite(fitted.fun):
             raise RuntimeError(
@@ -685,6 +698,15 @@ class _OrderedModel:
             )
 
         beta = fitted.x[:n_features]
+        score_norm = float(np.linalg.norm(np.asarray(fitted.jac), ord=np.inf))
+        scaled_score_norm = score_norm / max(1, values.shape[0])
+        stationarity_limit = max(min(100.0 * float(tolerance), 1e-4), 1e-5)
+        converged = bool(
+            np.isfinite(fitted.fun)
+            and np.isfinite(fitted.x).all()
+            and np.isfinite(scaled_score_norm)
+            and scaled_score_norm <= stationarity_limit
+        )
         fitted_raw_thresholds = fitted.x[n_features:]
         thresholds = _unpack_thresholds(fitted_raw_thresholds)
         threshold_names = [
@@ -695,19 +717,32 @@ class _OrderedModel:
 
         information = _numerical_hessian(negative_loglike, fitted.x)
         information = (information + information.T) / 2.0
-        information_eigenvalues = np.linalg.eigvalsh(information)
-        inference_valid = bool(
-            fitted.success
-            and np.isfinite(information_eigenvalues).all()
-            and np.min(information_eigenvalues) > 1e-8
+        information_eigenvalues = (
+            np.linalg.eigvalsh(information)
+            if np.isfinite(information).all()
+            else np.array([np.nan])
         )
-        raw_covariance = np.linalg.pinv(information)
+        maximum_eigenvalue = float(np.max(information_eigenvalues))
+        minimum_eigenvalue = float(np.min(information_eigenvalues))
+        inference_valid = bool(
+            converged
+            and np.isfinite(information_eigenvalues).all()
+            and maximum_eigenvalue > 0.0
+            and minimum_eigenvalue > 0.0
+            and minimum_eigenvalue / maximum_eigenvalue > 1e-12
+        )
+        raw_covariance = (
+            np.linalg.pinv(information)
+            if np.isfinite(information).all()
+            else np.full_like(information, np.nan)
+        )
         transformation = np.eye(fitted.x.size)
         transformation[n_features:, n_features:] = _threshold_jacobian(
             fitted_raw_thresholds
         )
         covariance_values = transformation @ raw_covariance @ transformation.T
         covariance_values = (covariance_values + covariance_values.T) / 2.0
+        inference_valid = bool(inference_valid and np.isfinite(covariance_values).all())
         standard_error_values = np.sqrt(np.clip(np.diag(covariance_values), 0.0, None))
         reported_values = np.r_[beta, thresholds]
         zstat_values = np.divide(
@@ -736,7 +771,9 @@ class _OrderedModel:
             pvalues=pd.Series(pvalue_values, index=parameter_names, name="p_value"),
             inference_valid=inference_valid,
             categories=categories,
-            converged=bool(fitted.success),
+            converged=converged,
+            score_norm=score_norm,
+            scaled_score_norm=scaled_score_norm,
             loglike=float(-fitted.fun),
             nobs=values.shape[0],
             feature_names=tuple(feature_names),

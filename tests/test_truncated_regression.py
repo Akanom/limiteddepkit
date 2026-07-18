@@ -4,7 +4,7 @@ import pytest
 from scipy.special import log_ndtr, ndtr
 from scipy.stats import norm
 
-from limiteddepkit.experimental import TruncatedRegression
+from limiteddepkit import TruncatedRegression
 
 
 def _truncated_sample(seed=3701, nobs=2_500):
@@ -31,6 +31,16 @@ def test_truncated_regression_recovers_parameters_and_matches_manual_likelihood(
         - log_ndtr(-truncation_index)
     )
     assert result.loglike == pytest.approx(manual_loglike, abs=1e-8)
+
+
+def test_truncated_regression_loose_tolerance_still_requires_stationarity():
+    X, y = _truncated_sample(nobs=1_200)
+    result = TruncatedRegression().fit(X, y, tolerance=1e6)
+
+    assert result.converged
+    assert result.inference_valid
+    assert result.scaled_score_norm <= 1e-4
+    assert result.optimizer_result.nit > 0
 
 
 def test_truncated_result_contract_and_prediction_semantics():
@@ -92,3 +102,49 @@ def test_truncated_regression_validates_support_design_and_prediction_schema():
         result.predict(X[["x", "const"]])
     with pytest.raises(ValueError, match="which"):
         result.predict(X, which="unconditional")
+
+
+def test_right_truncation_matches_reflected_left_truncation_problem():
+    rng = np.random.default_rng(3712)
+    full_X = pd.DataFrame({"const": 1.0, "x": rng.normal(size=2_000)})
+    latent = 0.4 + 0.6 * full_X["x"].to_numpy() + rng.normal(
+        scale=1.2,
+        size=len(full_X),
+    )
+    retained = latent < 0.0
+    X = full_X.loc[retained].reset_index(drop=True)
+    y = latent[retained]
+
+    right = TruncatedRegression(side="right").fit(X, y)
+    reflected = TruncatedRegression(side="left").fit(X, -y)
+
+    np.testing.assert_allclose(right.params, -reflected.params, rtol=1e-10, atol=1e-10)
+    assert right.sigma == pytest.approx(reflected.sigma, rel=1e-12)
+    assert right.loglike == pytest.approx(reflected.loglike, abs=1e-10)
+    np.testing.assert_allclose(
+        right.predict(X.iloc[:20]),
+        -reflected.predict(X.iloc[:20]),
+        rtol=1e-10,
+        atol=1e-10,
+    )
+    assert np.all(right.predict(X.iloc[:20]) < right.truncation_point)
+    with pytest.raises(ValueError, match="side"):
+        TruncatedRegression(side="both")
+
+
+def test_truncated_regression_supports_robust_and_cluster_covariance():
+    X, y = _truncated_sample(seed=3713, nobs=1_200)
+    robust = TruncatedRegression().fit(X, y, covariance_type="robust")
+    clusters = np.arange(len(X)) // 9
+    clustered = TruncatedRegression().fit(
+        X,
+        y,
+        covariance_type="cluster",
+        clusters=clusters,
+    )
+
+    assert robust.covariance_type == "robust"
+    assert clustered.covariance_type == "cluster"
+    assert clustered.n_clusters == len(np.unique(clusters))
+    assert np.isfinite(robust.standard_errors).all()
+    assert np.isfinite(clustered.standard_errors).all()

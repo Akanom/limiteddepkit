@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.special import expit
+from scipy.special import expit, ndtr
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,33 @@ class GeneralizedOrdinalSimulation:
 @dataclass(frozen=True)
 class RandomEffectsOrderedLogitSimulation:
     """Simulated random-intercept Ordered Logit panel and truth."""
+
+    X: pd.DataFrame
+    y: pd.Series
+    entity: pd.Series
+    time: pd.Series
+    params: pd.Series
+    thresholds: pd.Series
+    sigma_entity: float
+    random_intercepts: pd.Series
+    group_sizes: pd.Series
+
+    @property
+    def nobs(self) -> int:
+        return len(self.y)
+
+    @property
+    def n_entities(self) -> int:
+        return len(self.group_sizes)
+
+    @property
+    def is_balanced(self) -> bool:
+        return self.group_sizes.nunique() == 1
+
+
+@dataclass(frozen=True)
+class RandomEffectsOrderedProbitSimulation:
+    """Simulated random-intercept Ordered Probit panel and truth."""
 
     X: pd.DataFrame
     y: pd.Series
@@ -132,8 +159,12 @@ def simulate_generalized_ordered_logit(
     )
 
 
-def simulate_random_effects_ordered_logit(
+def _simulate_random_effects_ordered(
     *,
+    link: str,
+    simulation_type: type[
+        RandomEffectsOrderedLogitSimulation | RandomEffectsOrderedProbitSimulation
+    ],
     n_entities: int = 160,
     n_periods: int = 6,
     seed: int = 8_821,
@@ -143,13 +174,12 @@ def simulate_random_effects_ordered_logit(
     sigma_entity: float = 0.7,
     unbalanced: bool = False,
     minimum_periods: int = 2,
-) -> RandomEffectsOrderedLogitSimulation:
-    """Simulate a balanced or unbalanced random-intercept Ordered Logit panel.
+) -> RandomEffectsOrderedLogitSimulation | RandomEffectsOrderedProbitSimulation:
+    """Simulate a balanced or unbalanced random-intercept ordered panel.
 
     When ``unbalanced`` is true, each entity receives a uniformly sampled number
     of observations between ``minimum_periods`` and ``n_periods`` (inclusive).
-    The conditional data-generating process matches
-    :class:`limiteddepkit.RandomEffectsOrderedLogit` exactly.
+    The conditional data-generating process matches the selected link exactly.
     """
     if n_entities < 2:
         raise ValueError("n_entities must be at least two.")
@@ -186,7 +216,13 @@ def simulate_random_effects_ordered_logit(
     values = rng.normal(size=(entity_values.size, len(feature_names)))
     random_effect_values = rng.normal(scale=sigma_entity, size=n_entities)
     linear_predictor = values @ beta + random_effect_values[entity_values]
-    cumulative = expit(cuts[None, :] - linear_predictor[:, None])
+    indices = cuts[None, :] - linear_predictor[:, None]
+    if link == "logit":
+        cumulative = expit(indices)
+    elif link == "probit":
+        cumulative = ndtr(indices)
+    else:
+        raise ValueError(f"Unsupported simulation link: {link!r}.")
     bounds = np.column_stack(
         [np.zeros(entity_values.size), cumulative, np.ones(entity_values.size)]
     )
@@ -195,7 +231,7 @@ def simulate_random_effects_ordered_logit(
     split_names = [f"{index} | {index + 1}" for index in range(cuts.size)]
     entity_index = pd.Index(np.arange(n_entities), name="entity")
 
-    return RandomEffectsOrderedLogitSimulation(
+    return simulation_type(
         X=pd.DataFrame(values, columns=feature_names),
         y=pd.Series(outcomes, name="y"),
         entity=pd.Series(entity_values, name="entity"),
@@ -207,6 +243,62 @@ def simulate_random_effects_ordered_logit(
             random_effect_values, index=entity_index, name="random_intercept"
         ),
         group_sizes=pd.Series(sizes, index=entity_index, name="nobs"),
+    )
+
+
+def simulate_random_effects_ordered_logit(
+    *,
+    n_entities: int = 160,
+    n_periods: int = 6,
+    seed: int = 8_821,
+    thresholds: Any = (-0.8, 0.9),
+    coefficients: Any = (0.8, -0.5),
+    feature_names: tuple[str, ...] = ("x1", "x2"),
+    sigma_entity: float = 0.7,
+    unbalanced: bool = False,
+    minimum_periods: int = 2,
+) -> RandomEffectsOrderedLogitSimulation:
+    """Simulate a random-intercept Ordered Logit panel."""
+    return _simulate_random_effects_ordered(
+        link="logit",
+        simulation_type=RandomEffectsOrderedLogitSimulation,
+        n_entities=n_entities,
+        n_periods=n_periods,
+        seed=seed,
+        thresholds=thresholds,
+        coefficients=coefficients,
+        feature_names=feature_names,
+        sigma_entity=sigma_entity,
+        unbalanced=unbalanced,
+        minimum_periods=minimum_periods,
+    )
+
+
+def simulate_random_effects_ordered_probit(
+    *,
+    n_entities: int = 160,
+    n_periods: int = 6,
+    seed: int = 8_821,
+    thresholds: Any = (-0.8, 0.9),
+    coefficients: Any = (0.8, -0.5),
+    feature_names: tuple[str, ...] = ("x1", "x2"),
+    sigma_entity: float = 0.7,
+    unbalanced: bool = False,
+    minimum_periods: int = 2,
+) -> RandomEffectsOrderedProbitSimulation:
+    """Simulate a random-intercept Ordered Probit panel."""
+    return _simulate_random_effects_ordered(
+        link="probit",
+        simulation_type=RandomEffectsOrderedProbitSimulation,
+        n_entities=n_entities,
+        n_periods=n_periods,
+        seed=seed,
+        thresholds=thresholds,
+        coefficients=coefficients,
+        feature_names=feature_names,
+        sigma_entity=sigma_entity,
+        unbalanced=unbalanced,
+        minimum_periods=minimum_periods,
     )
 
 

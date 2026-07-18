@@ -160,13 +160,14 @@ design containing a one-class test fold.
 
 ## Small-sample models and nested tuning
 
-Ordinary `BinaryLogit` remains the stable MLE reference. Experimental
-`FirthBinaryLogit` provides finite bias-reduced estimates under separation;
-`RidgeBinaryLogit` and `RidgeOrderedLogit` provide explicit L2 regularization with
+Ordinary `BinaryLogit` remains the stable MLE reference. Stable
+`FirthBinaryLogit` provides finite bias-reduced estimates under separation and profile
+penalized-likelihood confidence intervals; experimental `RidgeBinaryLogit` and
+`RidgeOrderedLogit` provide explicit L2 regularization with
 approximate penalized-estimator covariance. Penalized likelihoods are not ordinary-MLE
 likelihoods and are not interchangeable inputs to AIC/BIC comparisons.
 
-All three experimental estimators require more observations than fitted parameters
+All three penalized estimators require more observations than fitted parameters
 (`n > p`) and a full-column-rank design. They are therefore small-sample/separation
 tools, not high-dimensional estimators and not remedies for exact collinearity. Reduce or
 re-specify a design that has `p >= n` or rank-deficient columns before fitting them.
@@ -426,7 +427,7 @@ forecasts; the callback must define how predicted states feed later horizons.
 Row-aligned fit and scoring context are split without leakage:
 
 ```python
-from limiteddepkit.experimental import WeibullDuration
+from limiteddepkit.duration import WeibullDuration
 from limiteddepkit.ml import StratifiedKFold, cross_validate
 
 duration_cv = cross_validate(

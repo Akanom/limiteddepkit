@@ -69,6 +69,10 @@ class BinaryProbitResult:
         return True
 
     @property
+    def scaled_score_norm(self) -> float:
+        return self.score_norm / max(1, self.nobs)
+
+    @property
     def covariance_type(self) -> str:
         return "observed-information"
 
@@ -196,12 +200,11 @@ class BinaryProbit:
             np.zeros(design.shape[1], dtype=float),
             jac=gradient,
             method="BFGS",
-            options={"maxiter": int(maxiter), "gtol": tolerance},
+            options={"maxiter": int(maxiter), "gtol": min(tolerance, 1e-7)},
         )
         score_norm = float(np.max(np.abs(gradient(optimizer_result.x))))
-        converged = bool(
-            optimizer_result.success or score_norm <= max(10.0 * tolerance, 1e-7)
-        )
+        stationarity_limit = max(min(10.0 * tolerance, 1e-6), 1e-7)
+        converged = bool(np.isfinite(score_norm) and score_norm <= stationarity_limit)
         if (
             not converged
             or not np.isfinite(optimizer_result.fun)

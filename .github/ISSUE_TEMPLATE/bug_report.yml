@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible bug in limiteddepkit.
+title: "Bug: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      description: Include code, data shape, and the exact model call.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed and expected behavior
+      description: Include warnings, convergence output, traceback, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Python, limiteddepkit, NumPy, SciPy, pandas, and statsmodels versions.
+

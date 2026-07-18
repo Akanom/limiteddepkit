@@ -4,7 +4,7 @@ import pytest
 from scipy.special import log_ndtr
 from scipy.stats import norm
 
-from limiteddepkit.experimental import IntervalRegression
+from limiteddepkit import IntervalRegression, Tobit
 from limiteddepkit.interval_regression import _log_interval_probability
 
 
@@ -33,6 +33,18 @@ def test_interval_regression_recovers_parameters_from_grouped_outcomes():
         np.log(norm.cdf(standardized_upper) - norm.cdf(standardized_lower))
     )
     assert result.loglike == pytest.approx(manual, abs=1e-8)
+
+
+def test_interval_regression_loose_tolerance_still_requires_stationarity():
+    X, latent = _latent_sample(nobs=350)
+    lower = np.floor(latent * 2.0) / 2.0
+    upper = lower + 0.5
+    result = IntervalRegression().fit(X, lower, upper, tolerance=1e6)
+
+    assert result.converged
+    assert result.inference_valid
+    assert result.scaled_score_norm <= 1e-4
+    assert result.optimizer_result.nit > 0
 
 
 def test_exact_observations_use_density_and_reduce_to_gaussian_mle():
@@ -144,3 +156,57 @@ def test_interval_regression_rejects_nonvector_bounds_and_unidentified_designs()
         IntervalRegression().fit(
             pd.DataFrame({"x1": X["x"], "x2": X["x"]}), latent, latent
         )
+
+
+@pytest.mark.parametrize("covariance_type", ["observed-information", "robust"])
+def test_interval_encoding_matches_tobit_reference_identity(covariance_type):
+    X, latent = _latent_sample(seed=4405, nobs=500)
+    observed = np.maximum(latent, 0.0)
+    lower = np.where(observed == 0.0, -np.inf, observed)
+    upper = observed.copy()
+
+    tobit = Tobit().fit(X, observed, covariance_type=covariance_type)
+    interval = IntervalRegression().fit(
+        X,
+        lower,
+        upper,
+        covariance_type=covariance_type,
+    )
+
+    np.testing.assert_allclose(interval.params, tobit.params, atol=2e-6)
+    assert interval.sigma == pytest.approx(tobit.sigma, abs=2e-6)
+    assert interval.loglike == pytest.approx(tobit.loglike, abs=2e-7)
+    np.testing.assert_allclose(interval.covariance, tobit.covariance, atol=2e-7)
+
+
+def test_interval_result_exposes_common_latent_distribution_api():
+    X, latent = _latent_sample(seed=4406, nobs=240)
+    result = IntervalRegression().fit(X, latent, latent)
+    subset = X.iloc[:11]
+
+    np.testing.assert_allclose(result.predict(subset), result.predict_latent(subset))
+    np.testing.assert_allclose(
+        result.predict_latent_cdf(subset, result.predict(subset)),
+        0.5,
+        atol=1e-12,
+    )
+    np.testing.assert_allclose(
+        result.predict_interval(subset, level=0.9),
+        result.predict_latent_interval(subset, level=0.9),
+    )
+
+
+def test_interval_regression_supports_cluster_covariance():
+    X, latent = _latent_sample(seed=4407, nobs=360)
+    clusters = np.arange(len(X)) // 6
+    result = IntervalRegression().fit(
+        X,
+        latent,
+        latent,
+        covariance_type="cluster",
+        clusters=clusters,
+    )
+
+    assert result.covariance_type == "cluster"
+    assert result.n_clusters == len(np.unique(clusters))
+    assert np.isfinite(result.standard_errors).all()

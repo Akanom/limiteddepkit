@@ -1,0 +1,36 @@
+title: "Parity or validation report: "
+labels:
+  - validation
+  - parity
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to share a reproducible comparison against another implementation or benchmark.
+  - type: input
+    id: model
+    attributes:
+      label: Model or workflow
+      placeholder: "Example: Firth Binary Logit on LBW"
+    validations:
+      required: true
+  - type: textarea
+    id: software
+    attributes:
+      label: Reference software
+      description: Include package names, versions, commands, and relevant options.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Data and reproducibility
+      description: Link public data or describe generated data, hashes, scripts, and seeds.
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: Include coefficient, standard-error, fit-statistic, prediction, or diagnostic differences.
+

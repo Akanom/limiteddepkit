@@ -64,6 +64,19 @@ def test_generalized_ordered_logit_validates_minimum_gap():
         GeneralizedOrderedLogit().fit(X, y, minimum_gap=0.0)
 
 
+@pytest.mark.parametrize(
+    "estimator",
+    [GeneralizedOrderedLogit(), PartialProportionalOdds(varying=["x1"])],
+)
+def test_loose_tolerance_cannot_certify_flexible_ordinal_starting_values(estimator):
+    X, y = make_ordinal_data(nobs=400)
+    result = estimator.fit(X, y, tolerance=1e6)
+
+    assert result.converged
+    assert result.scaled_kkt_residual <= 1e-4
+    assert result.optimizer_result.nit > 1
+
+
 def test_partial_proportional_odds_keeps_unselected_slope_common():
     X, y = make_ordinal_data()
     result = PartialProportionalOdds(varying=["x1"]).fit(X, y)

@@ -8,14 +8,30 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
-from scipy.special import gammaincc, gammaln
+from scipy.special import gammaln
+from scipy.stats import gamma as gamma_distribution
 from scipy.stats import norm
 
+from ._duration import (
+    DurationResultMixin,
+    covariance_from_information_and_scores,
+    format_time_predictions,
+    log_gammaincc,
+    numerical_score_matrix,
+    prepare_prediction_times,
+    scaled_frequency_score_norm,
+    stationarity_limit,
+    validate_covariance_request,
+    validate_entry,
+    validate_frequency_weights,
+    validate_prediction_design,
+    validate_probability,
+)
 from .ordinal import _as_2d_array, _numerical_hessian
 
 
 @dataclass(frozen=True)
-class GammaDurationResult:
+class GammaDurationResult(DurationResultMixin):
     """Fitted Gamma duration result."""
 
     params: pd.Series
@@ -30,6 +46,11 @@ class GammaDurationResult:
     nobs: int
     n_events: int
     feature_names: tuple[str, ...]
+    covariance_type: str
+    n_clusters: int | None
+    frequency_weight_sum: float
+    n_delayed_entry: int
+    scaled_score_norm: float
     optimizer_result: Any
 
     @property
@@ -47,19 +68,74 @@ class GammaDurationResult:
             float(np.exp(self.log_shape_param + critical * se)),
         )
 
-    def predict(self, X: Any) -> pd.Series:
-        design, _ = _as_2d_array(X)
-        if design.shape[1] != len(self.feature_names):
-            raise ValueError(
-                f"X must contain {len(self.feature_names)} regressors; "
-                f"received {design.shape[1]}."
-            )
-        linear_pred = design @ self.params.to_numpy(dtype=float)
+    def _scale(self, X: Any) -> tuple[np.ndarray, pd.Index]:
+        design, index = validate_prediction_design(X, self.feature_names)
+        return np.exp(design @ self.params.to_numpy(dtype=float)), index
 
-        scale = np.exp(linear_pred)
-        mean_duration = self.shape_param * scale
-        index = X.index if isinstance(X, pd.DataFrame) else None
-        return pd.Series(mean_duration, index=index, name="predicted")
+    def predict_mean(self, X: Any) -> pd.Series:
+        """Predict the conditional mean duration."""
+        scale, index = self._scale(X)
+        return pd.Series(
+            self.shape_param * scale,
+            index=index,
+            name="mean_duration",
+        )
+
+    def predict(self, X: Any) -> pd.Series:
+        """Alias for :meth:`predict_mean`."""
+        return self.predict_mean(X).rename("predicted")
+
+    def predict_survival(self, X: Any, times: Any) -> pd.Series | pd.DataFrame:
+        """Predict survival at one time or a time grid."""
+        scale, index = self._scale(X)
+        grid, scalar = prepare_prediction_times(times)
+        log_survival = log_gammaincc(
+            self.shape_param, grid[None, :] / scale[:, None]
+        )
+        values = np.exp(log_survival)
+        return format_time_predictions(
+            values, index=index, times=grid, scalar=scalar, name="survival"
+        )
+
+    def predict_cumulative_hazard(
+        self, X: Any, times: Any
+    ) -> pd.Series | pd.DataFrame:
+        """Predict cumulative hazard at one time or a time grid."""
+        scale, index = self._scale(X)
+        grid, scalar = prepare_prediction_times(times)
+        values = -log_gammaincc(
+            self.shape_param, grid[None, :] / scale[:, None]
+        )
+        return format_time_predictions(
+            values, index=index, times=grid, scalar=scalar, name="cumulative_hazard"
+        )
+
+    def predict_hazard(self, X: Any, times: Any) -> pd.Series | pd.DataFrame:
+        """Predict hazard at one positive time or a time grid."""
+        scale, index = self._scale(X)
+        grid, scalar = prepare_prediction_times(times, allow_zero=False)
+        scaled = grid[None, :] / scale[:, None]
+        log_density = (
+            (self.shape_param - 1.0) * np.log(grid[None, :])
+            - scaled
+            - self.shape_param * np.log(scale[:, None])
+            - gammaln(self.shape_param)
+        )
+        values = np.exp(log_density - log_gammaincc(self.shape_param, scaled))
+        return format_time_predictions(
+            values, index=index, times=grid, scalar=scalar, name="hazard"
+        )
+
+    def predict_quantile(self, X: Any, probability: float) -> pd.Series:
+        """Predict the duration quantile whose event CDF equals ``probability``."""
+        quantile = validate_probability(probability)
+        scale, index = self._scale(X)
+        values = gamma_distribution.ppf(
+            quantile,
+            self.shape_param,
+            scale=scale,
+        )
+        return pd.Series(values, index=index, name=f"quantile_{quantile:g}")
 
 
 class GammaDuration:
@@ -77,7 +153,12 @@ class GammaDuration:
         duration: Any,
         event: Any,
         *,
+        entry: Any | None = None,
+        frequency_weights: Any | None = None,
+        covariance_type: str = "observed",
+        clusters: Any | None = None,
         maxiter: int = 300,
+        tolerance: float = 1e-8,
     ) -> GammaDurationResult:
         """Fit Gamma duration model.
 
@@ -91,6 +172,10 @@ class GammaDuration:
             Event indicator (1 if event observed, 0 if censored)
         """
         design, feature_names = _as_2d_array(X)
+        if len(set(feature_names)) != len(feature_names):
+            raise ValueError("X feature names must be unique after conversion to strings.")
+        if "log_k" in feature_names:
+            raise ValueError("X feature name 'log_k' is reserved for Gamma shape.")
         duration_values = np.asarray(duration)
         event_values = np.asarray(event)
         if duration_values.ndim != 1:
@@ -115,24 +200,40 @@ class GammaDuration:
             raise ValueError("event must be binary (0 or 1).")
 
         n_features = design.shape[1]
-        n_events = int(events.sum())
+        if isinstance(maxiter, bool) or not isinstance(maxiter, (int, np.integer)) or maxiter <= 0:
+            raise ValueError("maxiter must be a positive integer.")
+        if not np.isfinite(tolerance) or tolerance <= 0.0:
+            raise ValueError("tolerance must be finite and positive.")
+        entries = validate_entry(entry, durations)
+        weights = validate_frequency_weights(
+            frequency_weights,
+            len(durations),
+            n_params=n_features + 1,
+        )
+        active = weights > 0.0
+        n_events = int(weights @ events)
         if n_events == 0:
-            raise ValueError("At least one observed event is required.")
-        if np.linalg.matrix_rank(design) < n_features:
-            raise ValueError("X must have full column rank.")
-        if design.shape[0] <= n_features + 1:
-            raise ValueError("The number of observations must exceed the parameters.")
-        if maxiter <= 0:
-            raise ValueError("maxiter must be positive.")
+            raise ValueError(
+                "At least one observed event with positive frequency weight is required."
+            )
+        if np.linalg.matrix_rank(design[active]) < n_features:
+            raise ValueError("X must have full column rank on positive-weight rows.")
+        covariance_label, cluster_codes = validate_covariance_request(
+            covariance_type, clusters, len(durations), active=active
+        )
 
-        log_durations = np.log(durations)
-        tiny = np.finfo(float).tiny
+        active_design = design[active]
+        active_durations = durations[active]
+        active_events = events[active]
+        active_entries = entries[active]
+        active_weights = weights[active]
+        log_durations = np.log(active_durations)
 
-        def negative_loglike(parameters: np.ndarray) -> float:
+        def contributions(parameters: np.ndarray) -> np.ndarray:
             beta = parameters[:n_features]
             log_k = parameters[n_features]
-            k = np.exp(log_k)  # Ensure positive shape
-            eta = design @ beta
+            k = np.exp(log_k)
+            eta = active_design @ beta
             log_t_scaled = log_durations - eta
             # exp(709) is near the floating-point limit. Clipping only affects
             # parameter proposals whose likelihood is already effectively zero.
@@ -140,26 +241,32 @@ class GammaDuration:
 
             # Event observations: log(f(t))
             # f(t) = t^(k-1) exp(-t/scale) / (scale^k Gamma(k))
-            event_mask = events == 1
             log_f = (
-                (k - 1.0) * log_durations[event_mask]
-                - t_scaled[event_mask]
-                - k * eta[event_mask]
+                (k - 1.0) * log_durations
+                - t_scaled
+                - k * eta
                 - gammaln(k)
             )
+            log_survival = log_gammaincc(k, t_scaled)
+            entry_scaled = active_entries * np.exp(-eta)
+            log_entry_survival = log_gammaincc(k, entry_scaled)
+            loglike = (
+                active_events * log_f
+                + (1 - active_events) * log_survival
+                - log_entry_survival
+            )
+            values = np.zeros(len(durations), dtype=float)
+            values[active] = -active_weights * loglike
+            return values
 
-            # Censored observations: log(S(t))
-            censored_mask = events == 0
-            survival_prob = gammaincc(k, t_scaled[censored_mask])
-            log_survival = np.log(np.clip(survival_prob, tiny, 1.0))
-
-            value = -float(np.sum(log_f) + np.sum(log_survival))
+        def negative_loglike(parameters: np.ndarray) -> float:
+            value = float(np.sum(contributions(parameters)))
             return value if np.isfinite(value) else 1e300
 
         # Initial values
         initial = np.zeros(n_features + 1, dtype=float)
         initial[:n_features] = np.linalg.lstsq(
-            design, log_durations, rcond=None
+            active_design, log_durations, rcond=None
         )[0]
 
         optimizer_result = minimize(
@@ -167,7 +274,12 @@ class GammaDuration:
             initial,
             method="L-BFGS-B",
             bounds=[(None, None)] * n_features + [(-10.0, 10.0)],
-            options={"maxiter": maxiter},
+            options={
+                "maxiter": int(maxiter),
+                "ftol": float(min(tolerance**2, 1e-14)),
+                "gtol": float(tolerance),
+                "maxls": 50,
+            },
         )
 
         parameters = np.asarray(optimizer_result.x, dtype=float)
@@ -176,14 +288,39 @@ class GammaDuration:
 
         hessian = _numerical_hessian(negative_loglike, parameters)
         hessian = 0.5 * (hessian + hessian.T)
-        inference_valid = bool(
-            optimizer_result.success
+        weighted_scores = numerical_score_matrix(contributions, parameters)
+        relative_score_norm = scaled_frequency_score_norm(weighted_scores, weights)
+        converged = bool(
+            np.isfinite(optimizer_result.fun)
+            and np.isfinite(parameters).all()
+            and relative_score_norm <= stationarity_limit(tolerance)
+            and -10.0 < parameters[n_features] < 10.0
+        )
+        structurally_valid = bool(
+            converged
             and -10.0 < parameters[n_features] < 10.0
             and np.isfinite(hessian).all()
             and np.linalg.eigvalsh(hessian).min() > 0.0
         )
+        n_clusters: int | None = None
+        if structurally_valid:
+            try:
+                covariance, n_clusters = covariance_from_information_and_scores(
+                    hessian,
+                    covariance_type=covariance_label,
+                    contribution_function=contributions,
+                    parameters=parameters,
+                    cluster_codes=cluster_codes,
+                    frequency_weights=weights,
+                )
+                inference_valid = True
+            except RuntimeError:
+                covariance = np.full_like(hessian, np.nan)
+                inference_valid = False
+        else:
+            covariance = np.full_like(hessian, np.nan)
+            inference_valid = False
         if inference_valid:
-            covariance = np.linalg.inv(hessian)
             standard_errors = np.sqrt(np.diag(covariance))
             zstats = parameters / standard_errors
             pvalues = 2.0 * norm.sf(np.abs(zstats))
@@ -208,10 +345,15 @@ class GammaDuration:
             zstats=zstats_series,
             pvalues=pvalues_series,
             inference_valid=inference_valid,
-            converged=bool(optimizer_result.success),
+            converged=converged,
             loglike=-float(optimizer_result.fun),
             nobs=int(design.shape[0]),
             n_events=n_events,
             feature_names=tuple(feature_names),
+            covariance_type=covariance_label,
+            n_clusters=n_clusters,
+            frequency_weight_sum=float(np.sum(weights)),
+            n_delayed_entry=int(np.count_nonzero((entries > 0.0) & active)),
+            scaled_score_norm=relative_score_norm,
             optimizer_result=optimizer_result,
         )

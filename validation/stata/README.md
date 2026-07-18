@@ -57,9 +57,10 @@ optimizers, starting values, quadrature rules, covariance choices, missing-data
 patterns, active constraints, or preprocessing decisions. The generated
 `parity_certificate.json` records the exact claim supported by a completed run.
 
-## Stable-model coverage and status
+## Eight-model certification coverage and status
 
-All eight stable model families are prepared for both tracks. The six models
+All eight models in this pre-expansion certification surface are prepared for both
+tracks. The six models
 using official Stata commands are required by default. The two flexible ordinal
 models depend on the community-contributed `gologit2` command and are optional
 unless the comparator receives `--require-flexible`.

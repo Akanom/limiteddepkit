@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import minimize, nnls
 from scipy.special import expit, ndtr
 from scipy.stats import norm
 
@@ -27,13 +27,32 @@ def _interior_inference(
     names: list[str],
     *,
     constraint_slack: float,
+    optimization_valid: bool,
     boundary_tolerance: float = 1e-5,
 ) -> tuple[pd.DataFrame, pd.Series, pd.Series, pd.Series, bool]:
-    valid = constraint_slack > boundary_tolerance
+    valid = bool(optimization_valid and constraint_slack > boundary_tolerance)
     if valid:
         information = _numerical_hessian(objective, parameters)
-        covariance_values = np.linalg.pinv(information)
+        information = (information + information.T) / 2.0
+        eigenvalues = (
+            np.linalg.eigvalsh(information)
+            if np.isfinite(information).all()
+            else np.array([np.nan])
+        )
+        valid = bool(
+            np.isfinite(eigenvalues).all()
+            and np.max(eigenvalues) > 0.0
+            and np.min(eigenvalues) > 0.0
+            and np.min(eigenvalues) / np.max(eigenvalues) > 1e-12
+        )
+    if valid:
+        covariance_values = np.linalg.inv(information)
         covariance_values = (covariance_values + covariance_values.T) / 2.0
+        valid = bool(
+            np.isfinite(covariance_values).all()
+            and np.min(np.diag(covariance_values)) >= -1e-12
+        )
+    if valid:
         standard_error_values = np.sqrt(np.clip(np.diag(covariance_values), 0.0, None))
         zstat_values = np.divide(
             parameters,
@@ -42,7 +61,7 @@ def _interior_inference(
             where=standard_error_values > 0,
         )
         pvalue_values = 2.0 * ndtr(-np.abs(zstat_values))
-    else:
+    if not valid:
         covariance_values = np.full((len(names), len(names)), np.nan)
         standard_error_values = np.full(len(names), np.nan)
         zstat_values = np.full(len(names), np.nan)
@@ -53,6 +72,28 @@ def _interior_inference(
         pd.Series(zstat_values, index=names, name="z_stat"),
         pd.Series(pvalue_values, index=names, name="p_value"),
         valid,
+    )
+
+
+def _scaled_kkt_residual(
+    gradient: np.ndarray,
+    constraint_function: Any,
+    parameters: np.ndarray,
+    *,
+    nobs: int,
+) -> float:
+    """Return a scaled KKT residual for the non-crossing inequalities."""
+    constraint_values = np.asarray(constraint_function(parameters), dtype=float)
+    active = constraint_values <= 1e-6
+    kkt_gradient = np.asarray(gradient, dtype=float)
+    if np.any(active):
+        jacobian = _numerical_jacobian(constraint_function, parameters)
+        active_jacobian = jacobian[active]
+        multipliers, _ = nnls(active_jacobian.T, kkt_gradient)
+        kkt_gradient = kkt_gradient - active_jacobian.T @ multipliers
+    return max(
+        float(np.linalg.norm(kkt_gradient, ord=np.inf)) / max(1, int(nobs)),
+        float(np.maximum(-constraint_values, 0.0).max(initial=0.0)),
     )
 
 
@@ -233,6 +274,8 @@ class GeneralizedOrderedLogitResult:
     inference_valid: bool
     categories: np.ndarray
     converged: bool
+    score_norm: float
+    scaled_kkt_residual: float
     loglike: float
     nobs: int
     feature_names: tuple[str, ...]
@@ -363,8 +406,14 @@ class GeneralizedOrderedLogit:
         encoded, categories = _ordered_categories(y, category_order=category_order)
         if values.shape[0] != encoded.size:
             raise ValueError("X and y must contain the same number of observations.")
-        if minimum_gap <= 0:
-            raise ValueError("minimum_gap must be positive.")
+        if isinstance(maxiter, bool) or not isinstance(maxiter, (int, np.integer)) or maxiter < 1:
+            raise ValueError("maxiter must be a positive integer.")
+        if not np.isfinite(tolerance) or tolerance <= 0.0:
+            raise ValueError("tolerance must be finite and positive.")
+        if not np.isfinite(minimum_gap) or minimum_gap <= 0:
+            raise ValueError("minimum_gap must be finite and positive.")
+        if len(set(feature_names)) != len(feature_names):
+            raise ValueError("X feature names must be unique after conversion to strings.")
 
         ordered_start = OrderedLogit().fit(X, y, category_order=categories)
         n_thresholds = categories.size - 1
@@ -403,7 +452,7 @@ class GeneralizedOrderedLogit:
             initial,
             method="SLSQP",
             constraints=constraints,
-            options={"maxiter": maxiter, "ftol": tolerance},
+            options={"maxiter": int(maxiter), "ftol": min(float(tolerance), 1e-9)},
         )
         if not np.isfinite(fitted.fun):
             raise RuntimeError("Generalized Ordered Logit produced a non-finite likelihood.")
@@ -411,6 +460,21 @@ class GeneralizedOrderedLogit:
         thresholds, slopes = unpack(fitted.x)
         index_gaps = np.diff(cumulative_indices(fitted.x), axis=1)
         minimum_fitted_gap = float(np.min(index_gaps)) if index_gaps.size else np.inf
+        score_norm = float(np.linalg.norm(np.asarray(fitted.jac), ord=np.inf))
+        scaled_kkt_residual = _scaled_kkt_residual(
+            np.asarray(fitted.jac),
+            constraints["fun"],
+            np.asarray(fitted.x),
+            nobs=values.shape[0],
+        )
+        stationarity_limit = max(min(100.0 * float(tolerance), 1e-4), 1e-5)
+        converged = bool(
+            np.isfinite(fitted.fun)
+            and np.isfinite(fitted.x).all()
+            and np.isfinite(scaled_kkt_residual)
+            and scaled_kkt_residual <= stationarity_limit
+            and minimum_fitted_gap >= minimum_gap - 1e-7
+        )
         threshold_names = [
             f"{categories[index]} | {categories[index + 1]}"
             for index in range(n_thresholds)
@@ -425,6 +489,7 @@ class GeneralizedOrderedLogit:
             fitted.x,
             parameter_names,
             constraint_slack=minimum_fitted_gap - minimum_gap,
+            optimization_valid=converged,
         )
         return GeneralizedOrderedLogitResult(
             thresholds=pd.Series(thresholds, index=threshold_names, name="threshold"),
@@ -437,7 +502,9 @@ class GeneralizedOrderedLogit:
             pvalues=pvalues,
             inference_valid=inference_valid,
             categories=categories,
-            converged=bool(fitted.success and minimum_fitted_gap >= minimum_gap - 1e-7),
+            converged=converged,
+            score_norm=score_norm,
+            scaled_kkt_residual=scaled_kkt_residual,
             loglike=float(-fitted.fun),
             nobs=values.shape[0],
             feature_names=tuple(feature_names),
@@ -462,6 +529,8 @@ class PartialProportionalOddsResult:
     inference_valid: bool
     categories: np.ndarray
     converged: bool
+    score_norm: float
+    scaled_kkt_residual: float
     loglike: float
     nobs: int
     feature_names: tuple[str, ...]
@@ -609,8 +678,14 @@ class PartialProportionalOdds:
         encoded, categories = _ordered_categories(y, category_order=category_order)
         if values.shape[0] != encoded.size:
             raise ValueError("X and y must contain the same number of observations.")
-        if minimum_gap <= 0:
-            raise ValueError("minimum_gap must be positive.")
+        if isinstance(maxiter, bool) or not isinstance(maxiter, (int, np.integer)) or maxiter < 1:
+            raise ValueError("maxiter must be a positive integer.")
+        if not np.isfinite(tolerance) or tolerance <= 0.0:
+            raise ValueError("tolerance must be finite and positive.")
+        if not np.isfinite(minimum_gap) or minimum_gap <= 0:
+            raise ValueError("minimum_gap must be finite and positive.")
+        if len(set(feature_names)) != len(feature_names):
+            raise ValueError("X feature names must be unique after conversion to strings.")
         unknown = set(self.varying) - set(feature_names)
         if unknown:
             raise ValueError(f"Unknown varying features: {sorted(unknown)}.")
@@ -664,7 +739,7 @@ class PartialProportionalOdds:
             initial,
             method="SLSQP",
             constraints=constraints,
-            options={"maxiter": maxiter, "ftol": tolerance},
+            options={"maxiter": int(maxiter), "ftol": min(float(tolerance), 1e-9)},
         )
         if not np.isfinite(fitted.fun):
             raise RuntimeError("Partial Proportional Odds produced a non-finite likelihood.")
@@ -672,6 +747,21 @@ class PartialProportionalOdds:
         thresholds, common, slopes = unpack(fitted.x)
         index_gaps = np.diff(cumulative_indices(fitted.x), axis=1)
         minimum_fitted_gap = float(np.min(index_gaps)) if index_gaps.size else np.inf
+        score_norm = float(np.linalg.norm(np.asarray(fitted.jac), ord=np.inf))
+        scaled_kkt_residual = _scaled_kkt_residual(
+            np.asarray(fitted.jac),
+            constraints["fun"],
+            np.asarray(fitted.x),
+            nobs=values.shape[0],
+        )
+        stationarity_limit = max(min(100.0 * float(tolerance), 1e-4), 1e-5)
+        converged = bool(
+            np.isfinite(fitted.fun)
+            and np.isfinite(fitted.x).all()
+            and np.isfinite(scaled_kkt_residual)
+            and scaled_kkt_residual <= stationarity_limit
+            and minimum_fitted_gap >= minimum_gap - 1e-7
+        )
         threshold_names = [
             f"{categories[index]} | {categories[index + 1]}"
             for index in range(n_thresholds)
@@ -690,6 +780,7 @@ class PartialProportionalOdds:
             fitted.x,
             parameter_names,
             constraint_slack=minimum_fitted_gap - minimum_gap,
+            optimization_valid=converged,
         )
         return PartialProportionalOddsResult(
             thresholds=pd.Series(thresholds, index=threshold_names, name="threshold"),
@@ -706,7 +797,9 @@ class PartialProportionalOdds:
             pvalues=pvalues,
             inference_valid=inference_valid,
             categories=categories,
-            converged=bool(fitted.success and minimum_fitted_gap >= minimum_gap - 1e-7),
+            converged=converged,
+            score_norm=score_norm,
+            scaled_kkt_residual=scaled_kkt_residual,
             loglike=float(-fitted.fun),
             nobs=values.shape[0],
             feature_names=tuple(feature_names),

@@ -1,4 +1,4 @@
-"""Experimental Gaussian interval regression."""
+"""Gaussian interval regression."""
 
 from __future__ import annotations
 
@@ -15,11 +15,11 @@ from ._continuous import (
     _check_optimizer_result,
     _ContinuousResultMixin,
     _inference_series,
-    _observed_information_covariance,
+    _mle_covariance,
+    _validate_covariance_options,
     _validate_fit_design,
     _validate_optimizer_options,
     _validate_outcome,
-    _validate_prediction_design,
 )
 
 
@@ -80,28 +80,18 @@ class IntervalRegressionResult(_ContinuousResultMixin):
     n_interval: int
     n_left_censored: int
     n_right_censored: int
+    n_clusters: int | None
+    _covariance_type: str
     score_norm: float
     optimizer_result: Any
 
     def predict(self, X: Any) -> pd.Series:
         """Predict the latent Gaussian mean ``E[y* | X] = X beta``."""
-        design, index = _validate_prediction_design(X, self.feature_names)
-        mean = design @ self.params.to_numpy(dtype=float)
-        return pd.Series(mean, index=index, name="predicted_latent")
+        return self.predict_latent(X)
 
     def predict_interval(self, X: Any, *, level: float = 0.95) -> pd.DataFrame:
         """Return a latent-outcome predictive interval, not a coefficient interval."""
-        if not 0.0 < level < 1.0:
-            raise ValueError("level must be strictly between zero and one.")
-        mean = self.predict(X)
-        critical = float(norm.ppf(0.5 + level / 2.0))
-        return pd.DataFrame(
-            {
-                "lower": mean - critical * self.sigma,
-                "upper": mean + critical * self.sigma,
-            },
-            index=mean.index,
-        )
+        return self.predict_latent_interval(X, level=level)
 
 
 class IntervalRegression:
@@ -115,6 +105,8 @@ class IntervalRegression:
         *,
         maxiter: int = 1_000,
         tolerance: float = 1e-8,
+        covariance_type: str = "observed-information",
+        clusters: Any = None,
     ) -> IntervalRegressionResult:
         maxiter, tolerance = _validate_optimizer_options(maxiter, tolerance)
         design, feature_names = _validate_fit_design(X)
@@ -146,10 +138,15 @@ class IntervalRegression:
         classified = exact | interval | left_censored | right_censored
         if not np.all(classified):
             raise ValueError("Bounds do not define valid exact or censored observations.")
+        covariance_type, cluster_codes, n_clusters = _validate_covariance_options(
+            covariance_type,
+            clusters,
+            nobs=design.shape[0],
+        )
 
         n_features = design.shape[1]
 
-        def objective(raw_parameters: np.ndarray) -> float:
+        def loglike_contributions(raw_parameters: np.ndarray) -> np.ndarray:
             beta = raw_parameters[:n_features]
             log_sigma = raw_parameters[-1]
             sigma = np.exp(log_sigma)
@@ -175,8 +172,11 @@ class IntervalRegression:
                 ) / sigma
                 contributions[right_censored] = log_ndtr(-standardized_lower)
             if not np.isfinite(contributions).all():
-                return np.inf
-            return -float(np.sum(contributions))
+                return np.full(design.shape[0], -np.inf)
+            return contributions
+
+        def objective(raw_parameters: np.ndarray) -> float:
+            return -float(np.sum(loglike_contributions(raw_parameters)))
 
         finite_widths = upper_bounds[interval] - lower_bounds[interval]
         reference_width = (
@@ -198,17 +198,30 @@ class IntervalRegression:
             initial,
             method="L-BFGS-B",
             bounds=[(None, None)] * n_features + [(-20.0, 20.0)],
-            options={"maxiter": maxiter, "ftol": tolerance, "gtol": tolerance},
+            options={
+                "maxiter": maxiter,
+                "ftol": min(tolerance, 1e-12),
+                "gtol": min(tolerance, 1e-6),
+                "maxls": 50,
+            },
         )
         score_norm = _check_optimizer_result(
             optimizer_result,
             model_name="Interval regression",
             tolerance=tolerance,
+            nobs=design.shape[0],
         )
         raw_parameters = np.asarray(optimizer_result.x, dtype=float)
         beta = raw_parameters[:n_features]
         sigma = float(np.exp(raw_parameters[-1]))
-        covariance = _observed_information_covariance(objective, raw_parameters, sigma)
+        covariance = _mle_covariance(
+            objective,
+            loglike_contributions,
+            raw_parameters,
+            sigma,
+            covariance_type=covariance_type,
+            cluster_codes=cluster_codes,
+        )
         covariance_frame, standard_errors, zstats, pvalues = _inference_series(
             beta, sigma, feature_names, covariance
         )
@@ -228,6 +241,8 @@ class IntervalRegression:
             n_interval=int(np.sum(interval)),
             n_left_censored=int(np.sum(left_censored)),
             n_right_censored=int(np.sum(right_censored)),
+            n_clusters=n_clusters,
+            _covariance_type=covariance_type,
             score_norm=score_norm,
             optimizer_result=optimizer_result,
         )

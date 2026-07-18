@@ -1,8 +1,9 @@
 # Contributing to limiteddepkit
 
-Thank you for helping improve `limiteddepkit`. The package is in a binary-and-ordinal
-alpha phase, so correctness evidence and explicit scope are more important
-than adding model names quickly.
+Thank you for helping improve `limiteddepkit`. The package is in an alpha phase with
+binary, ordinal, Gaussian censoring, foundational count, and parametric duration cores,
+so correctness evidence and explicit scope are more important than adding model names
+quickly.
 
 ## Development setup
 
@@ -42,7 +43,12 @@ A promotion proposal should include:
 
 New or materially unverified model families should begin in
 `limiteddepkit.experimental`. Experimental status must be visible in imports
-and documentation and should not be described as validated.
+and documentation. Passing a focused numerical check may be reported as
+evidence, but must not be described as stable promotion or broader certification.
+
+For early design questions, parity reports, and adoption notes, use GitHub
+Discussions before opening a narrow implementation issue. The public-development
+expectations are summarized in [docs/OPEN_DEVELOPMENT.md](docs/OPEN_DEVELOPMENT.md).
 
 ## Tests and style
 

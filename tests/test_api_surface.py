@@ -13,29 +13,73 @@ STABLE_BINARY_EXPORTS = {
     "BinaryProbitResult",
 }
 
+STABLE_CENSORING_EXPORTS = {
+    "IntervalRegression",
+    "IntervalRegressionResult",
+    "Tobit",
+    "TobitResult",
+    "TruncatedRegression",
+    "TruncatedRegressionResult",
+}
+
+STABLE_COUNT_EXPORTS = {
+    "NegativeBinomial",
+    "NegativeBinomialNB2",
+    "NegativeBinomialResult",
+    "PoissonRegressor",
+    "PoissonResult",
+}
+
+COUNT_COMPATIBILITY_EXPORTS = STABLE_COUNT_EXPORTS - {"NegativeBinomialNB2"}
+
+STABLE_PANEL_ORDINAL_EXPORTS = {
+    "RandomEffectsOrderedProbit",
+    "RandomEffectsOrderedProbitResult",
+    "RandomEffectsOrderedProbitSimulation",
+    "simulate_random_effects_ordered_probit",
+}
+
+STABLE_SMALL_SAMPLE_EXPORTS = {
+    "FirthBinaryLogit",
+    "FirthBinaryLogitResult",
+}
+
+STABLE_DURATION_EXPORTS = {
+    "DiscreteTimeDuration",
+    "DiscreteTimeDurationResult",
+    "ExponentialDuration",
+    "ExponentialDurationResult",
+    "GammaDuration",
+    "GammaDurationResult",
+    "GeometricDuration",
+    "GeometricDurationResult",
+    "WeibullDuration",
+    "WeibullDurationResult",
+}
+
+DURATION_COMPATIBILITY_EXPORTS = STABLE_DURATION_EXPORTS - {
+    "GeometricDuration",
+    "GeometricDurationResult",
+}
+
+STABLE_FIXED_EFFECTS_ORDINAL_EXPORTS = {
+    "FixedEffectsOrderedLogit",
+    "FixedEffectsOrderedLogitResult",
+}
+
 PROVISIONAL_EXPORTS = {
     "CensoredQuantileRegression",
     "CensoredQuantileRegressionResult",
     "ConditionalLogit",
     "ConditionalLogitResult",
-    "DiscreteTimeDuration",
-    "DiscreteTimeDurationResult",
-    "ExponentialDuration",
-    "ExponentialDurationResult",
-    "FirthBinaryLogit",
-    "FirthBinaryLogitResult",
-    "GammaDuration",
-    "GammaDurationResult",
+    "DynamicFixedEffectsOrderedLogit",
+    "DynamicFixedEffectsOrderedLogitResult",
+    "FixedEffectsOrderedProbit",
+    "FixedEffectsOrderedProbitResult",
     "HurdlePoisson",
     "HurdlePoissonResult",
-    "IntervalRegression",
-    "IntervalRegressionResult",
     "MultinomialLogit",
     "MultinomialLogitResult",
-    "NegativeBinomial",
-    "NegativeBinomialResult",
-    "PoissonRegressor",
-    "PoissonResult",
     "RidgeBinaryLogit",
     "RidgeBinaryLogitResult",
     "RidgeOrderedLogit",
@@ -44,12 +88,6 @@ PROVISIONAL_EXPORTS = {
     "SampleSelectionResult",
     "SequentialLogit",
     "SequentialLogitResult",
-    "Tobit",
-    "TobitResult",
-    "TruncatedRegression",
-    "TruncatedRegressionResult",
-    "WeibullDuration",
-    "WeibullDurationResult",
     "ZeroInflatedPoisson",
     "ZeroInflatedPoissonResult",
 }
@@ -89,13 +127,100 @@ def test_certified_binary_estimators_are_stable_root_exports():
     assert STABLE_BINARY_EXPORTS.isdisjoint(experimental.__all__)
 
 
+def test_gaussian_censoring_estimators_are_stable_root_exports_and_compatibility_aliases():
+    from limiteddepkit import censoring
+
+    assert set(limiteddepkit.__all__) >= STABLE_CENSORING_EXPORTS
+    assert set(censoring.__all__) == STABLE_CENSORING_EXPORTS
+    assert all(hasattr(limiteddepkit, name) for name in STABLE_CENSORING_EXPORTS)
+    assert all(
+        getattr(limiteddepkit, name) is getattr(censoring, name)
+        for name in STABLE_CENSORING_EXPORTS
+    )
+    assert all(
+        getattr(experimental, name) is getattr(censoring, name)
+        for name in STABLE_CENSORING_EXPORTS
+    )
+
+
+def test_foundational_count_estimators_are_stable_exports_and_compatibility_aliases():
+    from limiteddepkit import count
+
+    assert set(limiteddepkit.__all__) >= STABLE_COUNT_EXPORTS
+    assert set(count.__all__) == STABLE_COUNT_EXPORTS
+    assert all(hasattr(limiteddepkit, name) for name in STABLE_COUNT_EXPORTS)
+    assert all(
+        getattr(limiteddepkit, name) is getattr(count, name)
+        for name in STABLE_COUNT_EXPORTS
+    )
+    assert all(
+        getattr(experimental, name) is getattr(count, name)
+        for name in COUNT_COMPATIBILITY_EXPORTS
+    )
+
+
+def test_random_effects_ordered_probit_is_a_stable_root_export():
+    assert set(limiteddepkit.__all__) >= STABLE_PANEL_ORDINAL_EXPORTS
+    assert all(
+        hasattr(limiteddepkit, name) for name in STABLE_PANEL_ORDINAL_EXPORTS
+    )
+    assert STABLE_PANEL_ORDINAL_EXPORTS.isdisjoint(experimental.__all__)
+
+
+def test_firth_binary_logit_is_stable_with_experimental_compatibility_aliases():
+    from limiteddepkit import small_sample
+
+    assert set(limiteddepkit.__all__) >= STABLE_SMALL_SAMPLE_EXPORTS
+    assert set(small_sample.__all__) == STABLE_SMALL_SAMPLE_EXPORTS
+    assert all(
+        getattr(limiteddepkit, name) is getattr(small_sample, name)
+        for name in STABLE_SMALL_SAMPLE_EXPORTS
+    )
+    assert all(
+        getattr(experimental, name) is getattr(small_sample, name)
+        for name in STABLE_SMALL_SAMPLE_EXPORTS
+    )
+
+
+def test_duration_family_is_stable_with_experimental_compatibility_aliases():
+    from limiteddepkit import duration
+
+    assert set(limiteddepkit.__all__) >= STABLE_DURATION_EXPORTS
+    assert set(duration.__all__) == STABLE_DURATION_EXPORTS
+    assert all(
+        getattr(limiteddepkit, name) is getattr(duration, name)
+        for name in STABLE_DURATION_EXPORTS
+    )
+    assert all(
+        getattr(experimental, name) is getattr(duration, name)
+        for name in DURATION_COMPATIBILITY_EXPORTS
+    )
+
+
+def test_buc_fixed_effects_ordered_logit_is_stable_and_probit_is_provisional():
+    from limiteddepkit import panel
+
+    assert set(limiteddepkit.__all__) >= STABLE_FIXED_EFFECTS_ORDINAL_EXPORTS
+    assert all(
+        getattr(limiteddepkit, name) is getattr(panel, name)
+        for name in STABLE_FIXED_EFFECTS_ORDINAL_EXPORTS
+    )
+    assert STABLE_FIXED_EFFECTS_ORDINAL_EXPORTS.isdisjoint(experimental.__all__)
+
+
 def test_provisional_estimators_are_quarantined_from_package_root():
     assert PROVISIONAL_EXPORTS.isdisjoint(limiteddepkit.__all__)
     assert all(not hasattr(limiteddepkit, name) for name in PROVISIONAL_EXPORTS)
 
 
 def test_experimental_namespace_exports_every_provisional_estimator():
-    assert set(experimental.__all__) == PROVISIONAL_EXPORTS
+    assert set(experimental.__all__) == (
+        PROVISIONAL_EXPORTS
+        | STABLE_CENSORING_EXPORTS
+        | COUNT_COMPATIBILITY_EXPORTS
+        | STABLE_SMALL_SAMPLE_EXPORTS
+        | DURATION_COMPATIBILITY_EXPORTS
+    )
     assert all(hasattr(experimental, name) for name in PROVISIONAL_EXPORTS)
 
 

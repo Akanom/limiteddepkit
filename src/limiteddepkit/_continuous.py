@@ -1,4 +1,4 @@
-"""Shared contracts for experimental continuous limited-outcome models."""
+"""Shared contracts for continuous limited-outcome models."""
 
 from __future__ import annotations
 
@@ -6,9 +6,10 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from scipy.special import ndtr
 from scipy.stats import norm
 
-from .ordinal import _as_2d_array, _numerical_hessian
+from .ordinal import _as_2d_array, _numerical_hessian, _numerical_jacobian
 
 
 def _validate_fit_design(X: Any) -> tuple[np.ndarray, list[str]]:
@@ -56,6 +57,37 @@ def _validate_optimizer_options(maxiter: int, tolerance: float) -> tuple[int, fl
     return int(maxiter), float(tolerance)
 
 
+def _validate_covariance_options(
+    covariance_type: str,
+    clusters: Any,
+    *,
+    nobs: int,
+) -> tuple[str, np.ndarray | None, int | None]:
+    """Validate likelihood covariance options and optional cluster labels."""
+    allowed = {"observed-information", "robust", "cluster"}
+    if not isinstance(covariance_type, str) or covariance_type not in allowed:
+        raise ValueError(
+            "covariance_type must be 'observed-information', 'robust', or 'cluster'."
+        )
+    if covariance_type != "cluster":
+        if clusters is not None:
+            raise ValueError("clusters may be supplied only with covariance_type='cluster'.")
+        return covariance_type, None, None
+    if clusters is None:
+        raise ValueError("clusters is required when covariance_type='cluster'.")
+    labels = np.asarray(clusters)
+    if labels.ndim != 1:
+        raise ValueError("clusters must be one-dimensional.")
+    if labels.size != nobs:
+        raise ValueError("clusters must contain one label per observation.")
+    if pd.isna(labels).any():
+        raise ValueError("clusters contains missing values.")
+    codes, unique = pd.factorize(labels, sort=False)
+    if unique.size < 2:
+        raise ValueError("Cluster covariance requires at least two distinct clusters.")
+    return covariance_type, codes.astype(int), int(unique.size)
+
+
 def _validate_prediction_design(
     X: Any, feature_names: tuple[str, ...]
 ) -> tuple[np.ndarray, pd.Index]:
@@ -80,10 +112,15 @@ def _check_optimizer_result(
     *,
     model_name: str,
     tolerance: float,
+    nobs: int,
 ) -> float:
     score_norm = _score_norm(optimizer_result)
+    scaled_score_norm = score_norm / max(1, int(nobs))
+    stationarity_limit = max(min(100.0 * float(tolerance), 1e-4), 1e-5)
     converged = bool(
-        optimizer_result.success or score_norm <= max(10.0 * tolerance, 1e-6)
+        np.isfinite(optimizer_result.fun)
+        and np.isfinite(scaled_score_norm)
+        and scaled_score_norm <= stationarity_limit
     )
     parameters = np.asarray(optimizer_result.x, dtype=float)
     if (
@@ -118,6 +155,67 @@ def _observed_information_covariance(
     return (covariance + covariance.T) / 2.0
 
 
+def _mle_covariance(
+    negative_loglike: Any,
+    loglike_contributions: Any,
+    raw_parameters: np.ndarray,
+    sigma: float,
+    *,
+    covariance_type: str,
+    cluster_codes: np.ndarray | None,
+) -> np.ndarray:
+    """Return observed-information or likelihood-score sandwich covariance."""
+    if covariance_type == "observed-information":
+        return _observed_information_covariance(
+            negative_loglike,
+            raw_parameters,
+            sigma,
+        )
+
+    information = _numerical_hessian(negative_loglike, raw_parameters)
+    information = (information + information.T) / 2.0
+    if not np.isfinite(information).all():
+        raise RuntimeError("The observed-information matrix contains non-finite values.")
+    eigenvalues = np.linalg.eigvalsh(information)
+    largest = float(eigenvalues[-1])
+    if largest <= 0.0 or eigenvalues[0] <= max(1e-10 * largest, 1e-10):
+        raise RuntimeError(
+            "The observed-information matrix is singular or not positive definite; "
+            "parameter inference is not reliable."
+        )
+    bread = np.linalg.inv(information)
+    scores = _numerical_jacobian(loglike_contributions, raw_parameters)
+    if not np.isfinite(scores).all():
+        raise RuntimeError("The per-observation score matrix contains non-finite values.")
+
+    if covariance_type == "robust":
+        meat = scores.T @ scores
+    else:
+        if cluster_codes is None:
+            raise RuntimeError("Internal error: cluster labels were not retained.")
+        n_clusters = int(np.max(cluster_codes)) + 1
+        cluster_scores = np.zeros((n_clusters, scores.shape[1]), dtype=float)
+        np.add.at(cluster_scores, cluster_codes, scores)
+        meat = cluster_scores.T @ cluster_scores
+        nobs, n_parameters = scores.shape
+        if nobs <= n_parameters:
+            raise RuntimeError(
+                "Cluster covariance requires more observations than estimated parameters."
+            )
+        meat *= (n_clusters / (n_clusters - 1.0)) * (
+            (nobs - 1.0) / (nobs - n_parameters)
+        )
+
+    raw_covariance = bread @ meat @ bread
+    jacobian = np.eye(raw_parameters.size, dtype=float)
+    jacobian[-1, -1] = sigma
+    covariance = jacobian @ raw_covariance @ jacobian.T
+    covariance = (covariance + covariance.T) / 2.0
+    if not np.isfinite(covariance).all() or np.any(np.diag(covariance) < -1e-12):
+        raise RuntimeError("The sandwich covariance matrix is not numerically valid.")
+    return covariance
+
+
 def _inference_series(
     beta: np.ndarray,
     sigma: float,
@@ -126,7 +224,7 @@ def _inference_series(
 ) -> tuple[pd.DataFrame, pd.Series, pd.Series, pd.Series]:
     labels = [*feature_names, "sigma"]
     estimates = np.concatenate([np.asarray(beta, dtype=float), [float(sigma)]])
-    standard_errors = np.sqrt(np.diag(covariance))
+    standard_errors = np.sqrt(np.clip(np.diag(covariance), 0.0, None))
     zstats = estimates / standard_errors
     pvalues = 2.0 * norm.sf(np.abs(zstats))
     return (
@@ -148,6 +246,13 @@ class _ContinuousResultMixin:
     pvalues: pd.Series
     loglike: float
     nobs: int
+    feature_names: tuple[str, ...]
+    _covariance_type: str
+    score_norm: float
+
+    @property
+    def scaled_score_norm(self) -> float:
+        return self.score_norm / max(1, self.nobs)
 
     @property
     def all_params(self) -> pd.Series:
@@ -176,11 +281,11 @@ class _ContinuousResultMixin:
 
     @property
     def covariance_type(self) -> str:
-        return "observed-information"
+        return self._covariance_type
 
     @property
     def backend(self) -> str:
-        return "experimental-native-mle"
+        return "native-mle"
 
     def conf_int(self, level: float = 0.95) -> pd.DataFrame:
         if not 0.0 < level < 1.0:
@@ -209,3 +314,41 @@ class _ContinuousResultMixin:
 
     def vcov(self) -> pd.DataFrame:
         return self.covariance.copy()
+
+    def predict_latent(self, X: Any) -> pd.Series:
+        """Predict the latent Gaussian conditional mean ``X beta``."""
+        design, index = _validate_prediction_design(X, self.feature_names)
+        values = design @ self.params.to_numpy(dtype=float)
+        return pd.Series(values, index=index, name="predicted_latent")
+
+    def predict_latent_cdf(self, X: Any, values: Any) -> pd.Series:
+        """Evaluate the fitted latent Gaussian CDF at scalar or rowwise values."""
+        mean = self.predict_latent(X)
+        evaluation = np.asarray(values, dtype=float)
+        if evaluation.ndim == 0:
+            evaluation = np.full(len(mean), float(evaluation))
+        elif evaluation.shape != (len(mean),):
+            raise ValueError("values must be scalar or contain one value per prediction row.")
+        if not np.isfinite(evaluation).all():
+            raise ValueError("values must be finite.")
+        probabilities = ndtr((evaluation - mean.to_numpy(dtype=float)) / self.sigma)
+        return pd.Series(probabilities, index=mean.index, name="latent_cdf")
+
+    def predict_latent_interval(
+        self,
+        X: Any,
+        *,
+        level: float = 0.95,
+    ) -> pd.DataFrame:
+        """Return a latent-outcome predictive interval, not a coefficient interval."""
+        if not 0.0 < level < 1.0:
+            raise ValueError("level must be strictly between zero and one.")
+        mean = self.predict_latent(X)
+        critical = float(norm.ppf(0.5 + level / 2.0))
+        return pd.DataFrame(
+            {
+                "lower": mean - critical * self.sigma,
+                "upper": mean + critical * self.sigma,
+            },
+            index=mean.index,
+        )

@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Discussions
+    url: https://github.com/Akanom/limiteddepkit/discussions
+    about: Use Discussions for roadmap ideas, adoption notes, and early model-design questions.
+

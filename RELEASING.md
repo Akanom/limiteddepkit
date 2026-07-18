@@ -21,7 +21,16 @@ complete. Use the remaining checklist for external publication.
    external-software log/metadata, canonical result CSV, comparison report,
    Markdown summary, JSON certificate, and exact commit. Treat only the
    controlled tracks as certification evidence; the real-data tracks are
-   application checks.
+   application checks. Separately, rerun the promoted-family preparation, R
+   runner, and Python/R comparator and require all 12 fits and all 120/120
+   registered checks to pass. Its recorded 15 July 2026 result is application
+   evidence, not an extension of the controlled certificate or a universal
+   equality claim. Before making any promoted-family Stata claim, manually run
+   `validation/promoted/limiteddepkit_real_data.do` and then
+   `validation/promoted/compare_stata.py`; that Stata result is currently
+   pending and cannot be inferred from the Python/R pass. Archive the promoted
+   manifest, permitted provenance, canonical exports, logs, reports,
+   certificates, software versions, and exact commit together.
 5. Run the checks from a clean environment:
 
    ```bash

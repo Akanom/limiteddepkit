@@ -49,6 +49,8 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "prune validation/stata/work" in manifest
     assert "recursive-include validation/r *.R *.md *.ps1 *.py" in manifest
     assert "prune validation/r/work" in manifest
+    assert "recursive-include validation/promoted *.R *.do *.md *.py" in manifest
+    assert "prune validation/promoted/work" in manifest
     assert "include validation/PARITY_EVIDENCE.md" in manifest
 
 
@@ -66,11 +68,21 @@ def test_documentation_records_completed_benchmark_specific_parity():
     assert "benchmark-specific" in parity_guide
     assert "benchmark-specific" in r_guide
     assert "gologit2` 3.2.8" in readme
-    assert evidence_index.count("**PASS**") == 4
-    assert "82 | 0 | 0" in evidence_index
-    assert "110 | 0 | 0" in evidence_index
-    assert "b74f790dac0d25c3d0ef872ed43c5941" in evidence_index
-    assert "2780339b9e02d6b8917c9c33edad1042" in evidence_index
+    legacy_index, promoted_index = evidence_index.split(
+        "## Separate promoted-family application suite", maxsplit=1
+    )
+    assert legacy_index.count("**PASS**") == 4
+    assert "82 | 0 | 0" in legacy_index
+    assert "110 | 0 | 0" in legacy_index
+    assert "b74f790dac0d25c3d0ef872ed43c5941" in legacy_index
+    assert "2780339b9e02d6b8917c9c33edad1042" in legacy_index
+    assert "| R 4.5.1 | 12 | **PASS** | 120 | 0 |" in promoted_index
+    assert "| Stata | 11 exact/aligned runs plus one explicit Gamma skip | **PASS** | 140 | 0 |" in promoted_index
+    assert "86b589d3acfb245670e1317a05f9cc754" in promoted_index
+    assert "35178a26fa69a222100b829a0c0a99a45" in promoted_index
+    assert "bbd925871e37b2a5fffee31c40a4dce3" in promoted_index
+    assert "483175035e64b96ebae834f2c2a69415" in promoted_index
+    assert "78c8745b535bcc0f1525f309ed084ac9" in promoted_index
     combined = "\n".join([readme, parity_guide, r_guide, validation])
     assert "AWAITING MANUAL STATA" not in combined
     assert "PASS_STATA_PARITY" not in combined

@@ -12,4 +12,6 @@ recursive-include validation/stata *.do *.md *.ps1 *.py
 prune validation/stata/work
 recursive-include validation/r *.R *.md *.ps1 *.py
 prune validation/r/work
+recursive-include validation/promoted *.R *.do *.md *.py
+prune validation/promoted/work
 prune _out_of_scope

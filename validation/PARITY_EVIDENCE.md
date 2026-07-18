@@ -88,3 +88,59 @@ manifest hashes above or from a later run.
 Reproduction commands, parameter mappings, estimand alignment, tolerances, and
 the full evidence contract are documented in the [Stata guide](stata/README.md)
 and [R guide](r/README.md).
+
+## Separate promoted-family application suite
+
+The later promotion suite is intentionally separate from the eight-model
+certificate above. On 15 July 2026, its Python/R public-data application track
+passed **120 of 120** declared checks across 12 models:
+
+- Firth Binary Logit;
+- Poisson and NB2;
+- Tobit, truncated regression, and interval regression;
+- Geometric, Exponential, Weibull, and Gamma duration;
+- Random-effects Ordered Probit; and
+- BUC Fixed-effects Ordered Logit.
+
+| Implementation | Models | Result | Checks | Failures |
+| --- | ---: | --- | ---: | ---: |
+| R 4.5.1 | 12 | **PASS** | 120 | 0 |
+| Stata | 11 exact/aligned runs plus one explicit Gamma skip | **PASS** | 140 | 0 |
+
+The R evidence is classified per estimand: seven industrial-package fits,
+three independent likelihood/score implementations, and two exact likelihood/pseudo-sample
+identities. It is application evidence, not a new controlled certification
+claim. The LBW, infant-mortality, Mroz labor-supply, cancer-duration,
+TVSFPORS, and NLSWORK inputs are empirical. Stata's official `womenwage2`
+interval-regression fixture is explicitly fictional and must not be described
+as respondent data.
+
+The largest observed Python/R differences were `5.0765757e-5` for an
+estimate, `2.5513079e-5` for a standard error, `8.7349028e-6` for a covariance
+entry, `4.6126814e-5` for log likelihood, and `1.5868239e-5` for a prediction.
+All were within the model-specific gates registered before comparison.
+
+The promoted Stata pass has one explicit skip: Gamma duration because Stata
+`streg, distribution(ggamma)` is not the ordinary Gamma likelihood implemented
+by `GammaDuration`. Firth Binary Logit ran through the optional `firthlogit`
+command and passed its aligned coefficient, prediction, and inverse-ordinary-
+Fisher covariance checks. Exponential and Weibull `streg`
+checks certify coefficients, covariance, event/sample counts, convergence, and
+declared prediction targets; Stata's survival-time log-likelihood constants are
+not used as strict fit-statistic parity targets.
+
+Promoted-suite manifest SHA-256:
+`86b589d3acfb245670e1317a05f9cc7542065ec69bde1ce8530f1d0d827b7516`
+
+| Artifact | SHA-256 |
+| --- | --- |
+| R comparison report | `35178a26fa69a222100b829a0c0a99a45ff975386968f9c591e7767575e49833` |
+| R comparison summary | `a8501fd02dad1b64689436858c92e3134bd4b9f0f74f4020e4f44ea5098083cd` |
+| R parity certificate | `bbd925871e37b2a5fffee31c40a4dce34bf249310cbfe7c1bda7aba07e699cae` |
+| Stata comparison report | `483175035e64b96ebae834f2c2a69415ce4cd65b733b40ebe9f72f5cdd23a0e0` |
+| Stata comparison summary | `c49d7a48d52cf91815e2decfe9624d0c4e538e166b1ee16851096ee749d32fd0` |
+| Stata parity certificate | `78c8745b535bcc0f1525f309ed084ac92cf6e9ca1e45eb6fee8130ca8f7dbd30` |
+
+The complete reproduction and evidence contract is documented in the
+[promoted-family guide](promoted/README.md). Generated data and evidence remain
+ignored by Git and must be archived separately with the repository revision.

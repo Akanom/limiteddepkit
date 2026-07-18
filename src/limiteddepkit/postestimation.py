@@ -42,7 +42,7 @@ def vcov(result: Any) -> pd.DataFrame:
 
 
 def confint(result: Any, level: float = 0.95) -> pd.DataFrame:
-    """Return normal-approximation confidence intervals."""
+    """Return the fitted estimator's default confidence intervals."""
     return result.conf_int(level=level)
 
 

@@ -21,6 +21,13 @@ keywords = [
   "ordinal regression",
   "ordered logit",
   "ordered probit",
+  "count regression",
+  "poisson regression",
+  "negative binomial",
+  "censored regression",
+  "duration models",
+  "firth logistic regression",
+  "panel data",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

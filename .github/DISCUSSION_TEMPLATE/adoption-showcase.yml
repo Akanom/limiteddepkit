@@ -1,0 +1,29 @@
+title: "Use case or adoption note: "
+labels:
+  - adoption
+  - discussion
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to record public use in papers, replication packages, teaching, reports, or external projects.
+  - type: input
+    id: context
+    attributes:
+      label: Context
+      placeholder: "Paper, teaching module, replication package, applied project"
+    validations:
+      required: true
+  - type: textarea
+    id: usage
+    attributes:
+      label: How limiteddepkit was used
+      description: Mention model families, data type, and outputs used.
+    validations:
+      required: true
+  - type: textarea
+    id: links
+    attributes:
+      label: Public links
+      description: Add DOI, repository, preprint, documentation, or course-material links where available.
+

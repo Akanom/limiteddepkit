@@ -97,6 +97,17 @@ def test_ordered_probit_uses_shared_result_contract():
 
 
 @pytest.mark.parametrize("estimator", [OrderedLogit, OrderedProbit])
+def test_loose_tolerance_cannot_certify_ordered_starting_values(estimator):
+    X, y = make_ordinal_data(nobs=500)
+    result = estimator().fit(X, y, tolerance=1e6)
+
+    assert result.converged
+    assert result.inference_valid
+    assert result.scaled_score_norm <= 1e-4
+    assert result.optimizer_result.nit > 0
+
+
+@pytest.mark.parametrize("estimator", [OrderedLogit, OrderedProbit])
 def test_marginal_effects_respect_probability_identity(estimator):
     X, y = make_ordinal_data(nobs=800)
     result = estimator().fit(X, y)

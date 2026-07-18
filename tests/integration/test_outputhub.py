@@ -9,6 +9,7 @@ from limiteddepkit import (
     OrderedLogit,
     PartialProportionalOdds,
     RandomEffectsOrderedLogit,
+    RandomEffectsOrderedProbit,
     add_to_outputhub,
     to_outputhub_model,
 )
@@ -133,16 +134,21 @@ def test_add_flexible_model_to_outputhub_attaches_ame_table(
     }
 
 
-def test_random_effects_ordinal_outputhub_metadata():
+@pytest.mark.parametrize(
+    ("estimator_type", "link"),
+    [(RandomEffectsOrderedLogit, "logit"), (RandomEffectsOrderedProbit, "probit")],
+)
+def test_random_effects_ordinal_outputhub_metadata(estimator_type, link):
     X, y, _ = fitted_example(nobs=300)
     entity = np.repeat(np.arange(60), 5)
-    result = RandomEffectsOrderedLogit().fit(
+    result = estimator_type().fit(
         X, y, entity=entity, quadrature_points=8
     )
     model = to_outputhub_model(result)
 
-    assert model.name == "Random-effects Ordered Logit"
-    assert model.metadata["estimator"] == "random_effects_ordered_logit"
+    assert model.name == f"Random-effects Ordered {link.title()}"
+    assert model.metadata["estimator"] == f"random_effects_ordered_{link}"
+    assert model.metadata["link"] == link
     assert model.metadata["n_entities"] == 60
     assert model.metadata["quadrature_points"] == 8
     assert model.diagnostics["Random-effect SD"] == result.sigma_entity

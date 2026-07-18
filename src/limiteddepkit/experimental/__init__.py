@@ -2,23 +2,50 @@
 
 These APIs may change while remaining covariance, workflow, documentation, and
 compatibility promotion gates are completed.
+
+The Gaussian censoring, foundational count, and Firth Binary Logit names remain
+as temporary compatibility aliases after promotion to their stable family
+namespaces and the package root.
 """
 
 from ..censored_quantile import CensoredQuantileRegression, CensoredQuantileRegressionResult
+from ..censoring import (
+    IntervalRegression,
+    IntervalRegressionResult,
+    Tobit,
+    TobitResult,
+    TruncatedRegression,
+    TruncatedRegressionResult,
+)
 from ..conditional_logit import ConditionalLogit, ConditionalLogitResult
-from ..discrete_time_duration import DiscreteTimeDuration, DiscreteTimeDurationResult
-from ..exponential_duration import ExponentialDuration, ExponentialDurationResult
-from ..gamma_duration import GammaDuration, GammaDurationResult
+from ..count import (
+    NegativeBinomial,
+    NegativeBinomialResult,
+    PoissonRegressor,
+    PoissonResult,
+)
+from ..duration import (
+    DiscreteTimeDuration,
+    DiscreteTimeDurationResult,
+    ExponentialDuration,
+    ExponentialDurationResult,
+    GammaDuration,
+    GammaDurationResult,
+    WeibullDuration,
+    WeibullDurationResult,
+)
+from ..dynamic_fixed_effects_ordinal import (
+    DynamicFixedEffectsOrderedLogit,
+    DynamicFixedEffectsOrderedLogitResult,
+)
+from ..fixed_effects_ordinal import (
+    FixedEffectsOrderedProbit,
+    FixedEffectsOrderedProbitResult,
+)
 from ..hurdle_poisson import HurdlePoisson, HurdlePoissonResult
-from ..interval_regression import IntervalRegression, IntervalRegressionResult
 from ..multinomial import MultinomialLogit, MultinomialLogitResult
-from ..negative_binomial import NegativeBinomial, NegativeBinomialResult
-from ..poisson import PoissonRegressor, PoissonResult
 from ..sample_selection import SampleSelection, SampleSelectionResult
 from ..sequential_logit import SequentialLogit, SequentialLogitResult
-from ..tobit import Tobit, TobitResult
-from ..truncated_regression import TruncatedRegression, TruncatedRegressionResult
-from ..weibull_duration import WeibullDuration, WeibullDurationResult
 from ..zero_inflated_poisson import ZeroInflatedPoisson, ZeroInflatedPoissonResult
 from .small_sample import (
     FirthBinaryLogit,
@@ -36,10 +63,14 @@ __all__ = [
     "ConditionalLogitResult",
     "DiscreteTimeDuration",
     "DiscreteTimeDurationResult",
+    "DynamicFixedEffectsOrderedLogit",
+    "DynamicFixedEffectsOrderedLogitResult",
     "ExponentialDuration",
     "ExponentialDurationResult",
     "FirthBinaryLogit",
     "FirthBinaryLogitResult",
+    "FixedEffectsOrderedProbit",
+    "FixedEffectsOrderedProbitResult",
     "GammaDuration",
     "GammaDurationResult",
     "HurdlePoisson",

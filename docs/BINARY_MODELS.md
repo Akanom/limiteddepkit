@@ -30,6 +30,8 @@ intercept implicitly.
   finite MLE does not exist.
 - `maxiter` and `tolerance` are explicit optimizer controls; optimization
   failures raise rather than returning a result with fabricated inference.
+  Score certification is independently capped, so a deliberately loose
+  tolerance cannot certify the zero starting vector.
 
 ## Result contract
 
@@ -37,6 +39,7 @@ Both result classes expose:
 
 - labeled coefficients, observed-information covariance, standard errors,
   z-statistics, p-values, confidence intervals, AIC, and BIC;
+- raw and per-observation scaled score diagnostics;
 - `summary_frame()`, `vcov()`, `lincom()`, and `wald_test()`;
 - schema-safe `predict_proba()` and threshold-controlled `predict()`;
 - observation-level and average marginal effects for non-constant regressors;

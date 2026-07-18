@@ -1,0 +1,35 @@
+title: "Model family proposal: "
+labels:
+  - model-proposal
+  - discussion
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to discuss a model family before implementation or stable promotion.
+  - type: input
+    id: family
+    attributes:
+      label: Model family
+      description: Name the estimator or family being proposed.
+      placeholder: "Example: zero-inflated negative binomial"
+    validations:
+      required: true
+  - type: textarea
+    id: estimand
+    attributes:
+      label: Estimand and assumptions
+      description: Describe the likelihood or estimating equation, identification assumptions, and data contract.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Reference implementations or papers
+      description: List Stata, R, Python, or published references that can support validation.
+  - type: textarea
+    id: promotion
+    attributes:
+      label: Promotion evidence needed
+      description: Note tests, parity checks, simulation recovery, documentation, and known boundaries.
+

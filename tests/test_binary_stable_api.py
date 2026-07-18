@@ -68,3 +68,22 @@ def test_stable_binary_inference_helpers_and_ame_delta_method(stable_binary_resu
     method_wald = result.wald_test({"x": 1.0})
     package_wald = wald_test(result, {"x": 1.0})
     pd.testing.assert_series_equal(method_wald, package_wald)
+
+
+@pytest.mark.parametrize(
+    ("link", "estimator"),
+    [("logit", BinaryLogit), ("probit", BinaryProbit)],
+)
+def test_loose_tolerance_cannot_certify_binary_starting_values(link, estimator):
+    rng = np.random.default_rng(903 if link == "logit" else 904)
+    X = pd.DataFrame({"const": 1.0, "x": rng.normal(size=400)})
+    index = X.to_numpy() @ np.array([-0.35, 0.85])
+    probability = expit(index) if link == "logit" else norm.cdf(index)
+    y = rng.binomial(1, probability)
+
+    result = estimator().fit(X, y, tolerance=1e6)
+
+    assert result.converged
+    assert result.inference_valid
+    assert result.score_norm <= 1e-6
+    assert not np.allclose(result.params.to_numpy(), 0.0)

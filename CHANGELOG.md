@@ -9,6 +9,45 @@ pre-release phase.
 
 ### Added
 
+- Stable parametric duration family at the package root and
+  `limiteddepkit.duration`: explicit geometric discrete duration plus
+  Exponential, Weibull, and Gamma likelihoods with right censoring, delayed
+  entry, integer-frequency weights, observed/robust/cluster covariance,
+  schema-safe survival/hazard/cumulative-hazard/quantile prediction, and
+  temporary experimental compatibility aliases.
+- Stable BUC `FixedEffectsOrderedLogit` with exact conditional-likelihood
+  construction, entity-cluster composite covariance, Statsmodels parity, and
+  an explicit slopes-only identification contract. Added experimental
+  split-panel-jackknife `FixedEffectsOrderedProbit` with balanced-panel guards,
+  entity-bootstrap inference, known-entity diagnostic probabilities, and
+  unconditional likelihood parity.
+- Experimental `DynamicFixedEffectsOrderedLogit` implementing the restricted
+  four-outcome-history MRV conditional composite likelihood with exact discrete
+  stayers, a known state cutoff, threshold normalization, entity-clustered
+  Godambe inference, path-odds/recovery tests, and constructed-sample Statsmodels
+  parity. It remains outside the stable root API and does not report category
+  probabilities.
+- Stable `FirthBinaryLogit` at the package root and in `limiteddepkit.small_sample`,
+  with constrained profile penalized-likelihood confidence intervals, direct profile
+  diagnostics, exact separated-table checks, and independent `firthmodels` coefficient,
+  objective, and profile-bound parity. Experimental imports remain compatibility aliases;
+  ridge Binary/Ordered Logit remain provisional.
+- Stable `limiteddepkit.count` family and package-root exports for exposure/offset
+  Poisson and NB2. The promoted contract adds exact integer-frequency and analytic
+  estimating-equation weights, observed-information/HC0/HC1/cluster covariance,
+  schema-safe indexed prediction, common fit diagnostics and information criteria,
+  Statsmodels parity, and temporary `limiteddepkit.experimental` compatibility aliases.
+  Zero-inflated and hurdle Poisson remain experimental.
+- Stable `limiteddepkit.censoring` family and package-root exports for Gaussian Tobit,
+  truncated regression, and interval regression. The promoted contract adds left/right
+  Tobit and truncation rules, observed-information/robust/cluster covariance, common
+  latent-distribution post-estimation, reflection and cross-likelihood identities, and
+  temporary `limiteddepkit.experimental` compatibility aliases.
+- Stable `RandomEffectsOrderedProbit` with the existing non-adaptive GHQ,
+  observed-information, population/conditional prediction, posterior random-effect,
+  posterior-prediction, simulation, and Output Hub contracts. Its conditional kernel is
+  checked against Statsmodels and its marginal probabilities against the exact normal-
+  convolution identity.
 - Experimental `limiteddepkit.ml` workflow with dependency-light iid,
   stratified, complete-group, and forward-panel splitters; binary, multinomial,
   ordinal, grouped-choice, count, continuous, quantile, duration, and selection
@@ -24,8 +63,8 @@ pre-release phase.
   time-dependent and integrated Brier scores, and cumulative/dynamic AUC.
 - Lazy optional bridges for scikit-learn, Statsmodels, and callback-driven external
   estimators with explicit prediction semantics and no invented validity diagnostics.
-- Experimental Firth Binary Logit and ridge Binary/Ordered Logit estimators, with
-  separation, shrinkage, and aligned Statsmodels/scikit-learn numerical evidence.
+- Experimental ridge Binary/Ordered Logit estimators, with shrinkage and aligned
+  Statsmodels/scikit-learn numerical evidence.
 - Optional `[neural]` `ResidualBinaryMLP` advanced prediction challenger with an iid-only
   internal validation split, conservative completion/stabilization diagnostics,
   temperature scaling, and Monte Carlo dropout uncertainty output. All 21 neural tests
@@ -34,11 +73,21 @@ pre-release phase.
 - Optional scikit-learn validation gates for matching prediction metrics,
   deterministic splitter contracts, and end-to-end held-out Binary Logit
   probabilities against Statsmodels and unpenalized scikit-learn.
-- Pinned R 4.5.1 parity harness covering all eight stable binary and ordinal
+- Pinned R 4.5.1 parity harness covering the eight previously certified binary and ordinal
   families on both controlled and public-data fixtures, with canonical
   covariance, fit, probability, metadata, report, and certificate exports.
 - Committed cross-software evidence index recording the four completed parity
   outcomes and exact manifest, report, and certificate digests.
+- Separate promoted-family public-data application harness covering 12 stable
+  post-expansion fits. The 15 July 2026 Python/R run passed all 120/120
+  registered checks using seven industrial-package fits, three independent
+  likelihood or adjusted-score implementations, and two likelihood or
+  pseudo-sample identities. The applications use empirical observations except
+  for the official fictional `womenwage2` interval-regression software fixture;
+  the manual Stata comparison passed 140/140 required checks with an explicit
+  Gamma skip. This is application evidence,
+  not an extension of the older controlled certification or a universal
+  equality claim.
 
 ### Changed
 
@@ -49,7 +98,7 @@ pre-release phase.
 - Replaced the common Binary Logit and Poisson optimization paths with analytical,
   damped Newton/IRLS steps plus BFGS fallbacks; finite-MLE separation safeguards and
   reference-package parameter parity remain enforced.
-- Clarified that experimental Firth/ridge estimators require `n > p` and full column
+- Clarified that stable Firth and experimental ridge estimators require `n > p` and full column
   rank, and that native estimators require dense transformer output; sparse transformed
   designs remain available only to downstream estimators that explicitly accept them.
 - Completed both maintained Stata 17 parity tracks with `gologit2` 3.2.8; all
