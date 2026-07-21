@@ -54,6 +54,7 @@ test = [
   "ruff>=0.6,<1",
   "scikit-learn>=1.4,<2",
   "statsmodels>=0.14,<1",
+  "tomli>=2,<3; python_version < '3.11'",
   "universal-output-hub>=0.2.2,<1",
 ]
 dev = [
@@ -63,6 +64,7 @@ dev = [
   "ruff>=0.6,<1",
   "scikit-learn>=1.4,<2",
   "statsmodels>=0.14,<1",
+  "tomli>=2,<3; python_version < '3.11'",
   "twine>=5,<7",
   "universal-output-hub>=0.2.2,<1",
 ]

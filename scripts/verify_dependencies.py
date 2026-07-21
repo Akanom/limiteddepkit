@@ -9,7 +9,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10
+    import tomli as tomllib
 
 LOWER_BOUND = re.compile(r"(?:>=|(?<![<>=])>|==|~=)")
 UPPER_BOUND = re.compile(r"(?:<=|(?<![<>=])<|==|~=)")
