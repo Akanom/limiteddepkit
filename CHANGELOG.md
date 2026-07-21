@@ -107,7 +107,20 @@ pre-release phase.
 - Added Stata random-effect variance-to-standard-deviation canonicalization and
   tightened pooled ordered-model reference optimization.
 
-## [0.1.0a1] - Release pending
+## [0.1.0a2] - Release pending
+
+### Security
+
+- Bounded every direct and optional dependency and added hash-verified,
+  reproducible requirement sets without using OneDrive-incompatible `.lock`
+  files.
+- Added dependency auditing, distribution-content inspection, SBOM generation,
+  dependency-review gates, immutable GitHub Actions, trusted PyPI publishing,
+  and build-provenance attestations.
+- Kept Matplotlib optional and made missing plotting support fail with an
+  actionable `limiteddepkit[plots]` installation message.
+
+## [0.1.0a1] - 2026-07-18
 
 ### Added
 

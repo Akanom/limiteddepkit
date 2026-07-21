@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77", "wheel"]
+requires = ["setuptools>=77,<82", "wheel>=0.41,<1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "limiteddepkit"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "Limited-dependent-variable and microeconometric workflows for Python."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -42,34 +42,34 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "numpy>=1.23",
-  "pandas>=1.5",
-  "scipy>=1.9",
+  "numpy>=1.23,<3",
+  "pandas>=1.5,<4",
+  "scipy>=1.9,<2",
 ]
 
 [project.optional-dependencies]
 test = [
-  "matplotlib>=3.8",
-  "pytest>=8",
-  "ruff>=0.6",
-  "scikit-learn>=1.4",
-  "statsmodels>=0.14",
-  "universal-output-hub>=0.2.2",
+  "matplotlib>=3.8,<4",
+  "pytest>=8,<10",
+  "ruff>=0.6,<1",
+  "scikit-learn>=1.4,<2",
+  "statsmodels>=0.14,<1",
+  "universal-output-hub>=0.2.2,<1",
 ]
 dev = [
-  "build>=1.2",
-  "matplotlib>=3.8",
-  "pytest>=8",
-  "ruff>=0.6",
-  "scikit-learn>=1.4",
-  "statsmodels>=0.14",
-  "twine>=5",
-  "universal-output-hub>=0.2.2",
+  "build>=1.2,<2",
+  "matplotlib>=3.8,<4",
+  "pytest>=8,<10",
+  "ruff>=0.6,<1",
+  "scikit-learn>=1.4,<2",
+  "statsmodels>=0.14,<1",
+  "twine>=5,<7",
+  "universal-output-hub>=0.2.2,<1",
 ]
-validation = ["scikit-learn>=1.4", "statsmodels>=0.14"]
-neural = ["torch>=2.2"]
-plots = ["matplotlib>=3.8"]
-outputhub = ["universal-output-hub>=0.2.2"]
+validation = ["scikit-learn>=1.4,<2", "statsmodels>=0.14,<1"]
+neural = ["torch>=2.2,<3"]
+plots = ["matplotlib>=3.8,<4"]
+outputhub = ["universal-output-hub>=0.2.2,<1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

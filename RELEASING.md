@@ -1,17 +1,17 @@
 # Releasing limiteddepkit
 
-The source tree is frozen at `0.1.0a1`, but it is not yet publishable. Version,
-classifier, citation metadata, changelog, tests, and local artifact checks are
-complete. Use the remaining checklist for external publication.
+The source tree is prepared for `0.1.0a2`, but it is not publishable until the
+security pull request is reviewed and merged. Version, classifier, citation
+metadata, changelog, tests, and local artifact checks must remain synchronized.
 
 1. Create the source repository and add its Homepage, Repository, and Issues
    URLs under `[project.urls]` in `pyproject.toml`. Do not publish placeholder
    links. Replace relative links in the package README with absolute repository
    links so they resolve from the PyPI project page.
-2. Confirm that `0.1.0a1` remains synchronized in `pyproject.toml`,
+2. Confirm that `0.1.0a2` remains synchronized in `pyproject.toml`,
    `src/limiteddepkit/__init__.py`, and `CITATION.cff`, and that the Git tag is
-   exactly `0.1.0a1` or `v0.1.0a1`.
-3. Replace `Release pending` in the `0.1.0a1` changelog heading with the actual
+   exactly `0.1.0a2` or `v0.1.0a2`.
+3. Replace `Release pending` in the `0.1.0a2` changelog heading with the actual
    publication date, then review the supported-versus-experimental API list.
    Do not add another model family to this release candidate.
 4. Reconfirm and archive the external-software evidence. The 14 July 2026

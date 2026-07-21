@@ -4,7 +4,7 @@ from pathlib import Path
 import limiteddepkit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = "0.1.0a1"
+RELEASE_VERSION = "0.1.0a2"
 
 
 def _read(relative_path: str) -> str:

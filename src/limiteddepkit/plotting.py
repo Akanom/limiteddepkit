@@ -14,6 +14,16 @@ from .generalized_ordinal import (
 from .ordinal import OrderedResult
 
 
+def _require_matplotlib_pyplot() -> Any:
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ImportError(
+            "Plotting requires Matplotlib. Install it with: pip install 'limiteddepkit[plots]'"
+        ) from exc
+    return plt
+
+
 def _evaluation_grid(
     result: OrderedResult | GeneralizedOrderedLogitResult | PartialProportionalOddsResult,
     X: Any,
@@ -57,7 +67,7 @@ def plot_probabilities(
     ax: Any | None = None,
 ) -> Any:
     """Plot predicted category probabilities for a fitted ordinal model."""
-    import matplotlib.pyplot as plt
+    plt = _require_matplotlib_pyplot()
 
     grid, grid_values = _evaluation_grid(result, X, feature, values)
     probabilities = result.predict_proba(grid)
@@ -81,7 +91,7 @@ def plot_marginal_effects(
     ax: Any | None = None,
 ) -> Any:
     """Plot category-specific marginal effects for a fitted ordinal model."""
-    import matplotlib.pyplot as plt
+    plt = _require_matplotlib_pyplot()
 
     grid, grid_values = _evaluation_grid(result, X, feature, values)
     effects = result.marginal_effects(grid).xs(feature, axis=1, level="feature")

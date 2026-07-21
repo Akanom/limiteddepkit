@@ -31,7 +31,7 @@ The objective is not to collect as many estimators as possible. The objective is
 the observation rule, identification assumptions, prediction target, inferential status,
 and validation evidence visible enough for replication, review, and applied use.
 
-> **Alpha warning:** the current package version is `0.1.0a1`. APIs can change before a
+> **Alpha warning:** the current package version is `0.1.0a2`. APIs can change before a
 > stable release. Validation claims are model- and benchmark-specific; they do not imply
 > universal equivalence across datasets, specifications, optimizers, covariance targets,
 > quadrature rules, or software defaults.
@@ -793,7 +793,7 @@ remaining promotion gates.
 - Native estimators accept dense finite numeric arrays or DataFrames.
 - DataFrame feature names must be unique.
 - Prediction DataFrames must match fitted columns and order.
-- Formula parsing and automatic categorical encoding are not part of `0.1.0a1`.
+- Formula parsing and automatic categorical encoding are not part of `0.1.0a2`.
 - Weight, covariance, offset, exposure, and cluster support are family-specific.
 - The package does not silently impute missing values or rebuild a preprocessing pipeline.
 
@@ -1301,7 +1301,7 @@ Akanbi, Oluwajuwon Mayomi.
 
 limiteddepkit: Limited-dependent-variable models for Python.
 
-Version 0.1.0a1, 2026.
+Version 0.1.0a2, 2026.
 ```
 
 No DOI or archival identifier is asserted before one is assigned. Add the permanent
