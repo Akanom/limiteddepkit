@@ -43,9 +43,10 @@ categories = result.predict(X_new)
 coefficient_table = result.summary_frame()
 ```
 
-Formula parsing is not part of the alpha API. Prepare categorical encodings and
-other design transformations before fitting, and reproduce the same columns and
-column order at prediction time.
+Outcome formula parsing is not part of the alpha API. Prepare design
+transformations before fitting and reproduce the same columns and order at
+prediction time. `FactorVariableCompiler` can persist explicit categorical and
+interaction encoding; keep `add_constant=False` for identified ordinal designs.
 
 ## Flexible slopes and nesting
 

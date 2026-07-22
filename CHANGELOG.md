@@ -9,6 +9,10 @@ pre-release phase.
 
 ### Added
 
+- Stable package-root `FactorVariableCompiler` for persisted Stata-style `i.`
+  and `c.` design terms, `#` and `##` interactions, wildcard source expansion,
+  explicit category/base control, prediction-schema enforcement, and bounded
+  feature growth without hidden estimator or OutputHub state.
 - Stable package-root `varlist` helper for Stata-style `*` and `?` expansion
   against pandas DataFrames, with deterministic ordering, strict exclusions,
   explicit ambiguity failures, estimator integration coverage, and documented
