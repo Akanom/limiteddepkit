@@ -41,7 +41,13 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "Development Status :: 2 - Pre-Alpha" not in pyproject
     assert "currently released" not in citation.lower()
     assert f"## [{RELEASE_VERSION}] - Release pending" in changelog
-    assert "python -m twine check --strict dist/*" in ci_workflow
+    reusable_build = re.search(
+        r"uses: Akanom/python-package-governance/\.github/workflows/"
+        r"reusable-build\.yml@([0-9a-f]{40})",
+        ci_workflow,
+    )
+    assert reusable_build is not None
+    assert "requirements_file: requirements/release.txt" in ci_workflow
     assert "python -m twine check --strict dist/*" in contributing
     assert "Verify release tag matches package version" in publish_workflow
     assert "prune _out_of_scope" in manifest
