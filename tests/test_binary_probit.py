@@ -6,8 +6,7 @@ from scipy.stats import norm
 from limiteddepkit import BinaryProbit
 
 
-@pytest.fixture
-def fitted_probit():
+def _probit_data():
     rng = np.random.default_rng(31)
     X = pd.DataFrame(
         {
@@ -19,6 +18,12 @@ def fitted_probit():
     )
     beta = np.array([0.3, 0.7, -0.25])
     y = rng.binomial(1, norm.cdf(X.to_numpy() @ beta))
+    return X, y
+
+
+@pytest.fixture
+def fitted_probit():
+    X, y = _probit_data()
     return X, y, BinaryProbit().fit(X, y)
 
 
@@ -44,6 +49,20 @@ def test_binary_probit_fits_with_complete_result_contract(fitted_probit):
     assert list(result.summary_frame().index) == list(X.columns)
 
 
+def test_binary_probit_fixture_converges_without_bfgs(monkeypatch):
+    X, y = _probit_data()
+
+    def reject_bfgs(*args, **kwargs):
+        raise AssertionError("BFGS should not run for this regular Probit fit")
+
+    monkeypatch.setattr("limiteddepkit.binary_probit.minimize", reject_bfgs)
+    result = BinaryProbit().fit(X, y)
+
+    assert result.converged
+    assert result.optimizer_result.method == "damped-newton-irls"
+    assert result.score_norm <= 1e-7
+
+
 def test_binary_probit_marginal_effects_match_probability_finite_differences(fitted_probit):
     X, _, result = fitted_probit
     evaluation = X.iloc[:12].copy()
@@ -57,8 +76,7 @@ def test_binary_probit_marginal_effects_match_probability_finite_differences(fit
         higher[feature] += step
         lower[feature] -= step
         numerical = (
-            result.predict_proba(higher)[1].to_numpy()
-            - result.predict_proba(lower)[1].to_numpy()
+            result.predict_proba(higher)[1].to_numpy() - result.predict_proba(lower)[1].to_numpy()
         ) / (2.0 * step)
         assert analytical[feature].to_numpy() == pytest.approx(numerical, abs=2e-8)
 

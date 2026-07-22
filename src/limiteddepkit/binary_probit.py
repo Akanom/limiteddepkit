@@ -12,6 +12,7 @@ from scipy.optimize import minimize
 from scipy.special import log_ndtr
 from scipy.stats import norm
 
+from ._irls import damped_newton
 from .binary import (
     _binary_ame_inference,
     _binary_margins,
@@ -124,13 +125,9 @@ class BinaryProbitResult:
     def average_marginal_effects(self, X: Any) -> pd.Series:
         return self.marginal_effects(X).mean(axis=0).rename("estimate")
 
-    def average_marginal_effects_inference(
-        self, X: Any, *, level: float = 0.95
-    ) -> pd.DataFrame:
+    def average_marginal_effects_inference(self, X: Any, *, level: float = 0.95) -> pd.DataFrame:
         """Return delta-method inference for average marginal effects."""
-        return _binary_ame_inference(
-            self, X, scale_function=norm.pdf, level=level
-        )
+        return _binary_ame_inference(self, X, scale_function=norm.pdf, level=level)
 
     def margins(
         self,
@@ -195,13 +192,28 @@ class BinaryProbit:
             signed_indices = signs * (design @ beta)
             return -(design.T @ (signs * _inverse_mills_ratio(signed_indices)))
 
-        optimizer_result = minimize(
+        def information_at(beta: np.ndarray) -> np.ndarray:
+            signed_indices = signs * (design @ beta)
+            inverse_mills = _inverse_mills_ratio(signed_indices)
+            weights = inverse_mills * (signed_indices + inverse_mills)
+            return design.T @ (weights[:, None] * design)
+
+        optimizer_result = damped_newton(
             negative_loglike,
+            gradient,
+            information_at,
             np.zeros(design.shape[1], dtype=float),
-            jac=gradient,
-            method="BFGS",
-            options={"maxiter": int(maxiter), "gtol": min(tolerance, 1e-7)},
+            maxiter=int(maxiter),
+            tolerance=float(min(tolerance, 1e-7)),
         )
+        if not optimizer_result.success:
+            optimizer_result = minimize(
+                negative_loglike,
+                np.asarray(optimizer_result.x, dtype=float),
+                jac=gradient,
+                method="BFGS",
+                options={"maxiter": int(maxiter), "gtol": min(tolerance, 1e-7)},
+            )
         score_norm = float(np.max(np.abs(gradient(optimizer_result.x))))
         stationarity_limit = max(min(10.0 * tolerance, 1e-6), 1e-7)
         converged = bool(np.isfinite(score_norm) and score_norm <= stationarity_limit)
@@ -215,10 +227,7 @@ class BinaryProbit:
             )
 
         coefficients = np.asarray(optimizer_result.x, dtype=float)
-        signed_indices = signs * (design @ coefficients)
-        inverse_mills = _inverse_mills_ratio(signed_indices)
-        weights = inverse_mills * (signed_indices + inverse_mills)
-        information = design.T @ (weights[:, None] * design)
+        information = information_at(coefficients)
         covariance = _invert_information(information)
         standard_errors = np.sqrt(np.diag(covariance))
         zstats = coefficients / standard_errors
