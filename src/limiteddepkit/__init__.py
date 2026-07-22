@@ -1,5 +1,6 @@
 """Validated limited-dependent-variable and duration estimators."""
 
+from ._factor_variables import FactorVariableCompiler
 from ._varlist import varlist
 from .binary import BinaryLogit, BinaryLogitResult
 from .binary_probit import BinaryProbit, BinaryProbitResult
@@ -160,5 +161,6 @@ __all__ = [
     "FirthBinaryLogit",
     "FirthBinaryLogitResult",
     "varlist",
+    "FactorVariableCompiler",
 ]
 __version__ = "0.1.0a2"

@@ -207,7 +207,27 @@ probabilities = binary.predict_proba(new_data[features])
 
 Expansion is strict and deterministic: unmatched patterns, duplicate columns, and
 non-string column names raise. See [Stata-style variable lists](docs/DATA_CONTRACTS.md)
-for the complete contract and current factor-variable boundary.
+for the complete selector contract.
+
+Fit factor and interaction metadata once, then reuse the identical numeric
+design for prediction:
+
+```python
+compiler = ldk.FactorVariableCompiler(
+    "c.age c.income_* i.education i.education##c.age c.age##c.age",
+    category_orders={"education": ["secondary", "college", "graduate"]},
+    base_categories={"education": "secondary"},
+    add_constant=True,
+)
+X = compiler.fit_transform(data)
+binary = ldk.BinaryProbit().fit(X, data["outcome"])
+probabilities = binary.predict_proba(compiler.transform(new_data))
+```
+
+The compiler supports `i.`, `c.`, `#`, and `##` without silently adding a
+constant or accepting unknown prediction levels. See the
+[factor-variable guide](docs/FACTOR_VARIABLES.md) for the category, interaction,
+identification, and feature-growth contracts.
 
 Focused stable namespaces are also available:
 
@@ -810,7 +830,8 @@ remaining promotion gates.
 - Native estimators accept dense finite numeric arrays or DataFrames.
 - DataFrame feature names must be unique.
 - Prediction DataFrames must match fitted columns and order.
-- Formula parsing and automatic categorical encoding are not part of `0.1.0a2`.
+- Outcome formulas such as `y ~ x` are not parsed. Explicit categorical and
+  interaction encoding is available through `FactorVariableCompiler`.
 - Weight, covariance, offset, exposure, and cluster support are family-specific.
 - The package does not silently impute missing values or rebuild a preprocessing pipeline.
 
@@ -1190,8 +1211,9 @@ causal evidence.
 ## Preserve the preprocessing design
 
 Save category maps, dummy levels, interactions, scales, feature order, offsets, exposure,
-entry times, and sample filters. The package does not store a formula or preprocessing
-pipeline for later reconstruction.
+entry times, and sample filters. Store a fitted `FactorVariableCompiler` with the
+estimator when it creates the design. The package does not infer an outcome formula or
+reconstruct unrelated scaling, imputation, offset, exposure, or filtering steps.
 
 ---
 

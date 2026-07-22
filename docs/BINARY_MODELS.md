@@ -72,6 +72,7 @@ identities, finite-difference marginal effects, extreme indices, schema errors,
 and complete and quasi-complete separation.
 
 The stable contract currently provides model-based observed-information
-covariance only. Formula parsing, frequency/analytic weights, offsets, robust or
-clustered covariance, penalized separation remedies, and bootstrap inference
-are not yet part of these estimators.
+covariance only. Outcome formulas, frequency/analytic weights, offsets, robust
+or clustered covariance, penalized separation remedies, and bootstrap
+inference are not yet part of these estimators. Explicit `i.`/`c.` preprocessing
+is available through `FactorVariableCompiler` before fitting.

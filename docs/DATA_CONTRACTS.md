@@ -34,14 +34,19 @@ silently changing a specification. Duplicate or non-string DataFrame columns
 also raise because their parameter labels would be ambiguous. If exclusions
 remove every selected variable, expansion fails.
 
-## Current boundary
+## Factor-variable compilation
 
 `varlist` returns names; it does not mutate the DataFrame or automatically add
 an intercept. Store the returned list and use it for both fitting and
 prediction. Fitted estimators continue to enforce exact feature names and
 order.
 
-This first increment supports only `*` and `?`. Stata factor-variable tokens
-such as `i.`, `c.`, `#`, and `##`, base-category declarations, and hyphenated
-variable ranges are not interpreted yet. They require a separate design-matrix
-parser with persisted category and interaction metadata.
+`FactorVariableCompiler` builds on this selector contract. It supports `i.` and
+`c.` components, `#` interaction-only terms, `##` factorial expansion,
+continuous quadratics, wildcard source selection, explicit category orders,
+and explicit base categories. Wildcards are expanded only while fitting; exact
+input and output schemas are then persisted for prediction.
+
+See [Factor-variable design compiler](FACTOR_VARIABLES.md) for syntax,
+identification safeguards, fitted metadata, and the remaining formula-language
+boundary. Hyphenated Stata ranges and outcome formulas are not interpreted.
