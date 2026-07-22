@@ -32,6 +32,10 @@ intercept implicitly.
   failures raise rather than returning a result with fabricated inference.
   Score certification is independently capped, so a deliberately loose
   tolerance cannot certify the zero starting vector.
+- Binary Probit uses a damped Newton step with its analytical
+  observed-information matrix and retains BFGS as a fallback. Final
+  convergence is always certified from the analytical score, independent of
+  the optimizer's status message.
 
 ## Result contract
 
