@@ -51,14 +51,14 @@ jobs:
       - run: python -m pytest tests/test_ml_neural.py
 
   governance-security:
-    uses: Akanom/python-package-governance/.github/workflows/reusable-security.yml@09d19a220bdcbd2355c8cc1006def5e913dd4462
+    uses: Akanom/python-package-governance/.github/workflows/reusable-security.yml@256d69be94f67d22548e9f1431b3f9902f235a50
     with:
       python_version: "3.13"
       requirements_file: requirements/test.txt
       release_requirements_file: requirements/release.txt
 
   governance-build:
-    uses: Akanom/python-package-governance/.github/workflows/reusable-build.yml@09d19a220bdcbd2355c8cc1006def5e913dd4462
+    uses: Akanom/python-package-governance/.github/workflows/reusable-build.yml@256d69be94f67d22548e9f1431b3f9902f235a50
     with:
       python_version: "3.13"
       requirements_file: requirements/release.txt

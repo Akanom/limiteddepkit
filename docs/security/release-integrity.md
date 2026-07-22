@@ -1,7 +1,7 @@
 # Release Integrity
 
 The security and build jobs call `Akanom/python-package-governance` at immutable
-commit `09d19a220bdcbd2355c8cc1006def5e913dd4462`; dependency updates must review
+commit `256d69be94f67d22548e9f1431b3f9902f235a50`; dependency updates must review
 and deliberately advance that SHA.
 
 Every release must pass supported-Python tests, minimum-version tests,
