@@ -9,6 +9,8 @@ change those estimators' stable status.
 
 ## User and model guides
 
+- [Stata-style variable lists](DATA_CONTRACTS.md) documents deterministic
+  wildcard expansion, strict exclusions, and the fit/prediction schema boundary.
 - [Package scope](PACKAGE_SCOPE.md) defines which model families stay, which
   are experimental, and which are extracted from the distribution.
 - [Binary model guide](BINARY_MODELS.md) documents stable Logit/Probit inputs,

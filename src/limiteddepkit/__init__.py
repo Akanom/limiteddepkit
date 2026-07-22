@@ -1,5 +1,6 @@
 """Validated limited-dependent-variable and duration estimators."""
 
+from ._varlist import varlist
 from .binary import BinaryLogit, BinaryLogitResult
 from .binary_probit import BinaryProbit, BinaryProbitResult
 from .censoring import (
@@ -158,5 +159,6 @@ __all__ = [
     "simulate_dynamic_random_effects_ordered_logit",
     "FirthBinaryLogit",
     "FirthBinaryLogitResult",
+    "varlist",
 ]
 __version__ = "0.1.0a2"

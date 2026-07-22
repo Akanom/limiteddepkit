@@ -192,6 +192,23 @@ print(censored.predict(X_censored_new, which="censoring_probability"))
 Use pandas DataFrames when possible. Fitted feature names are retained, and prediction
 DataFrames must reproduce those names and their order.
 
+Stata-style wildcard varlists can select a reproducible design from one analysis
+DataFrame without manually typing every column name:
+
+```python
+features = ldk.varlist(
+    data,
+    "const income_* controls_?",
+    exclude="outcome entity_id time_id",
+)
+binary = ldk.BinaryProbit().fit(data[features], data["outcome"])
+probabilities = binary.predict_proba(new_data[features])
+```
+
+Expansion is strict and deterministic: unmatched patterns, duplicate columns, and
+non-string column names raise. See [Stata-style variable lists](docs/DATA_CONTRACTS.md)
+for the complete contract and current factor-variable boundary.
+
 Focused stable namespaces are also available:
 
 ```python

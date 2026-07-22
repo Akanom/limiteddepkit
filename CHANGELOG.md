@@ -9,6 +9,10 @@ pre-release phase.
 
 ### Added
 
+- Stable package-root `varlist` helper for Stata-style `*` and `?` expansion
+  against pandas DataFrames, with deterministic ordering, strict exclusions,
+  explicit ambiguity failures, estimator integration coverage, and documented
+  factor-variable boundaries.
 - Stable parametric duration family at the package root and
   `limiteddepkit.duration`: explicit geometric discrete duration plus
   Exponential, Weibull, and Gamma likelihoods with right censoring, delayed

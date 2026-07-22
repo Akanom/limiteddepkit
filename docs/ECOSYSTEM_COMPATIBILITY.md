@@ -30,6 +30,14 @@ intervals = confint(result)
 probability_margins = margins(result, X)
 ```
 
+The package-root `varlist(data, variables, exclude=...)` helper provides a
+deterministic string-based input-selection bridge without coupling estimator
+calculation state to `systemgmmkit` or Universal Output Hub. Its wildcard and
+ordering rules are documented in [Stata-style variable lists](DATA_CONTRACTS.md).
+Future factor-variable support should compile to the same explicit DataFrame
+design contract. Universal Output Hub remains a consumer of labeled fitted
+parameters and does not own variable expansion or transformation state.
+
 Linear-model concepts are not copied where they are not statistically natural.
 For example, ordinal results expose category probabilities rather than pretending
 that categorical outcomes have ordinary least-squares residuals.
