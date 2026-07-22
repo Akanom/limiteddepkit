@@ -158,7 +158,11 @@ def test_average_marginal_effects_inference(estimator):
     X, y = make_ordinal_data(nobs=800)
     result = estimator().fit(X, y)
     inference = result.average_marginal_effects_inference(X)
-    average = result.average_marginal_effects(X).stack(future_stack=True)
+    average_effects = result.average_marginal_effects(X)
+    try:
+        average = average_effects.stack(future_stack=True)
+    except TypeError:  # pandas < 2.1 does not expose future_stack
+        average = average_effects.stack()
 
     assert inference.index.names == ["category", "feature"]
     assert inference["estimate"].to_numpy() == pytest.approx(
