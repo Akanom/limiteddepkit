@@ -31,10 +31,43 @@ The objective is not to collect as many estimators as possible. The objective is
 the observation rule, identification assumptions, prediction target, inferential status,
 and validation evidence visible enough for replication, review, and applied use.
 
-> **Alpha warning:** the current package version is `0.1.0a2`. APIs can change before a
+> **Alpha warning:** the current package version is `0.1.0a3`. APIs can change before a
 > stable release. Validation claims are model- and benchmark-specific; they do not imply
 > universal equivalence across datasets, specifications, optimizers, covariance targets,
 > quadrature rules, or software defaults.
+
+## Controlled performance mode
+
+Poisson keeps its validated execution path as the default. Large or repeated
+fits can opt into one-time active-array and likelihood-constant preparation:
+
+```python
+from limiteddepkit import PoissonRegressor
+
+result = PoissonRegressor().fit(
+    X,
+    y,
+    exposure=person_time,
+    engine="accelerated",
+)
+```
+
+`engine="reference"` remains the permanent audit and rollback path. See
+[controlled performance benchmarks](docs/PERFORMANCE.md) for exact-parity
+requirements, measured scope, environment metadata, and reproduction commands.
+
+For a real-world count-data workflow, run the pinned Stata Press `rod93`
+infant-mortality example from a source checkout. The first run requires explicit
+network authorization; the file is cached outside the repository and verified
+by SHA-256 before use:
+
+```powershell
+python examples/real_world_count_workflow.py --download
+python examples/real_world_count_workflow.py --poisson-engine reference
+```
+
+The example compares exposure-adjusted Poisson and NB2 fits and reports a
+non-causal interpretation boundary.
 
 ---
 
@@ -244,7 +277,7 @@ from limiteddepkit.small_sample import FirthBinaryLogit
 
 Python 3.10 or newer is required. Install the current alpha release from PyPI:
 
-    python -m pip install limiteddepkit
+    python -m pip install limiteddepkit==0.1.0a3
 
 For the newest development version, install from a checkout:
 
@@ -1116,6 +1149,11 @@ application check and does not broaden the certification claim. The comparisons 
 completed on 14 July 2026; Stata used `gologit2` 3.2.8, and R used aligned `glm.fit`,
 `MASS::polr`, `VGAM::vglm`, and `ordinal::clmm` specifications.
 
+For the `0.1.0a3` release candidate, all four tracks were freshly prepared and
+rerun on 28 July 2026. Stata 17 again passed 82/82 checks in each track and
+pinned R 4.5.1 again passed 110/110 checks in each track. This is a repeat of
+the same benchmark-specific contracts, not a broader equivalence claim.
+
 Observed maximum absolute differences across the completed reports were:
 
 | Track | Implementation | Estimate | Standard error | Covariance | Log likelihood | Probability |
@@ -1168,6 +1206,10 @@ optional `firthlogit` and passed its aligned Stata checks. This result is applic
 It neither extends the older controlled certification nor claims universal
 numerical equality across datasets, specifications, optimizers, covariance
 estimands, or software versions.
+
+The promoted Python/R and Stata application tracks were freshly rerun for
+`0.1.0a3` on 28 July 2026 and reproduced the 120/120 and 140/140 required-check
+results, respectively, with the ordinary-Gamma Stata limitation unchanged.
 
 See the [promoted-family application harness](validation/promoted/README.md) and
 [cross-software evidence index](validation/PARITY_EVIDENCE.md) for the model map,
@@ -1340,7 +1382,7 @@ Akanbi, Oluwajuwon Mayomi.
 
 limiteddepkit: Limited-dependent-variable models for Python.
 
-Version 0.1.0a2, 2026.
+Version 0.1.0a3, 2026.
 ```
 
 No DOI or archival identifier is asserted before one is assigned. Add the permanent

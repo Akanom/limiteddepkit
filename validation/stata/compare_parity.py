@@ -144,7 +144,7 @@ REQUIRED_PYTHON_REFERENCES = {
     "python/predictions.csv",
 }
 EXPECTED_MANIFEST_CONTROLS = {
-    "limiteddepkit_version": "0.1.0a1",
+    "limiteddepkit_version": "0.1.0a3",
     "prediction_rows_per_model": 25,
     "quadrature_method": "ghermite",
     "ordered_optimizer_maxiter": 5_000,
@@ -466,8 +466,7 @@ def _verify_manifest(workdir: Path) -> dict[str, Any]:
     )
     if missing_required:
         raise ValueError(
-            "Parity manifest is missing required file registrations: "
-            + ", ".join(missing_required)
+            "Parity manifest is missing required file registrations: " + ", ".join(missing_required)
         )
     mismatches: list[str] = []
     root = workdir.resolve()

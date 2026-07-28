@@ -4,7 +4,7 @@ from pathlib import Path
 import limiteddepkit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = "0.1.0a2"
+RELEASE_VERSION = "0.1.0a3"
 
 
 def _read(relative_path: str) -> str:
@@ -15,12 +15,8 @@ def test_release_version_is_synchronized_across_metadata():
     pyproject = _read("pyproject.toml")
     citation = _read("CITATION.cff")
 
-    project_version = re.search(
-        r'^version = "([^"]+)"$', pyproject, flags=re.MULTILINE
-    )
-    citation_version = re.search(
-        r"^version: (\S+)$", citation, flags=re.MULTILINE
-    )
+    project_version = re.search(r'^version = "([^"]+)"$', pyproject, flags=re.MULTILINE)
+    citation_version = re.search(r"^version: (\S+)$", citation, flags=re.MULTILINE)
     assert project_version is not None
     assert citation_version is not None
     assert project_version.group(1) == RELEASE_VERSION
@@ -40,7 +36,7 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "Development Status :: 3 - Alpha" in pyproject
     assert "Development Status :: 2 - Pre-Alpha" not in pyproject
     assert "currently released" not in citation.lower()
-    assert f"## [{RELEASE_VERSION}] - Release pending" in changelog
+    assert f"## [{RELEASE_VERSION}] - 2026-07-28" in changelog
     reusable_build = re.search(
         r"uses: Akanom/python-package-governance/\.github/workflows/"
         r"reusable-build\.yml@([0-9a-f]{40})",
@@ -51,6 +47,8 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "python -m twine check --strict dist/*" in contributing
     assert "Verify release tag matches package version" in publish_workflow
     assert "prune _out_of_scope" in manifest
+    assert "recursive-include benchmarks *.py" in manifest
+    assert "recursive-include examples *.py" in manifest
     assert "recursive-include validation/stata *.do *.md *.ps1 *.py" in manifest
     assert "prune validation/stata/work" in manifest
     assert "recursive-include validation/r *.R *.md *.ps1 *.py" in manifest
@@ -83,7 +81,10 @@ def test_documentation_records_completed_benchmark_specific_parity():
     assert "b74f790dac0d25c3d0ef872ed43c5941" in legacy_index
     assert "2780339b9e02d6b8917c9c33edad1042" in legacy_index
     assert "| R 4.5.1 | 12 | **PASS** | 120 | 0 |" in promoted_index
-    assert "| Stata | 11 exact/aligned runs plus one explicit Gamma skip | **PASS** | 140 | 0 |" in promoted_index
+    assert (
+        "| Stata | 11 exact/aligned runs plus one explicit Gamma skip | **PASS** | 140 | 0 |"
+        in promoted_index
+    )
     assert "86b589d3acfb245670e1317a05f9cc754" in promoted_index
     assert "35178a26fa69a222100b829a0c0a99a45" in promoted_index
     assert "bbd925871e37b2a5fffee31c40a4dce3" in promoted_index

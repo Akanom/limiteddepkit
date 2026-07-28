@@ -144,9 +144,7 @@ class PoissonResult:
             nobs=design.shape[0],
             index=index,
         )
-        rates = np.exp(
-            design @ self.params.to_numpy(dtype=float) + prediction_offset
-        )
+        rates = np.exp(design @ self.params.to_numpy(dtype=float) + prediction_offset)
         return pd.Series(rates, index=index, name="predicted")
 
 
@@ -173,11 +171,24 @@ class PoissonRegressor:
         use_correction: bool = True,
         maxiter: int = 300,
         tolerance: float = 1e-8,
+        engine: str = "reference",
     ) -> PoissonResult:
-        """Estimate a Poisson mean model."""
+        """Estimate a Poisson mean model.
+
+        ``engine="reference"`` remains the validated default. The opt-in
+        ``"accelerated"`` engine prepares contiguous positive-weight arrays and
+        the data-only log-factorial term once while preserving the likelihood,
+        optimizer, convergence, covariance, and result contracts.
+        """
         validate_optimizer_options(maxiter, tolerance)
         if not isinstance(use_correction, (bool, np.bool_)):
             raise TypeError("use_correction must be boolean.")
+        if not isinstance(engine, str):
+            raise TypeError("engine must be 'reference' or 'accelerated'.")
+        engine = engine.strip().lower()
+        if engine not in {"reference", "accelerated"}:
+            raise ValueError("engine must be 'reference' or 'accelerated'.")
+        use_prepared_arrays = engine == "accelerated"
 
         design, feature_names, index = validate_count_design(X)
         counts = validate_count_response(y, design.shape[0], index)
@@ -197,7 +208,21 @@ class PoissonRegressor:
         active = weights > 0.0
         if not np.any(active & (counts > 0.0)):
             raise ValueError("At least one positive count must have positive weight.")
-        if np.linalg.matrix_rank(design[active]) < design.shape[1]:
+        if use_prepared_arrays:
+            active_design = np.ascontiguousarray(design[active], dtype=np.float64)
+            active_counts = np.ascontiguousarray(counts[active], dtype=np.float64)
+            active_offset = np.ascontiguousarray(model_offset[active], dtype=np.float64)
+            active_weights = np.ascontiguousarray(weights[active], dtype=np.float64)
+            active_log_factorial = gammaln(active_counts + 1.0)
+            rank_design = active_design
+        else:
+            active_design = None
+            active_counts = None
+            active_offset = None
+            active_weights = None
+            active_log_factorial = None
+            rank_design = design[active]
+        if np.linalg.matrix_rank(rank_design) < design.shape[1]:
             raise ValueError("X must have full column rank among positive-weight rows.")
         canonical_cov_type, cluster_array, n_clusters = validate_covariance(
             cov_type=cov_type,
@@ -207,41 +232,69 @@ class PoissonRegressor:
             active=active,
         )
 
-        def negative_loglike(beta: np.ndarray) -> float:
-            eta = design[active] @ beta + model_offset[active]
-            if np.max(eta) > 709.0:
-                return 1e300
-            mean = np.exp(eta)
-            contributions = (
-                counts[active] * eta
-                - mean
-                - gammaln(counts[active] + 1.0)
-            )
-            value = -float(weights[active] @ contributions)
-            return value if np.isfinite(value) else 1e300
+        if use_prepared_arrays:
+            assert active_design is not None
+            assert active_counts is not None
+            assert active_offset is not None
+            assert active_weights is not None
+            assert active_log_factorial is not None
 
-        def gradient(beta: np.ndarray) -> np.ndarray:
-            eta = design[active] @ beta + model_offset[active]
-            if np.max(eta) > 709.0:
-                return np.full(beta.shape, 1e300)
-            return design[active].T @ (
-                weights[active] * (np.exp(eta) - counts[active])
-            )
+            def negative_loglike(beta: np.ndarray) -> float:
+                eta = active_design @ beta + active_offset
+                if np.max(eta) > 709.0:
+                    return 1e300
+                mean = np.exp(eta)
+                contributions = active_counts * eta - mean - active_log_factorial
+                value = -float(active_weights @ contributions)
+                return value if np.isfinite(value) else 1e300
 
-        def information_at(beta: np.ndarray) -> np.ndarray:
-            eta = design[active] @ beta + model_offset[active]
-            if np.max(eta) > 709.0:
-                return np.full((beta.size, beta.size), np.nan)
-            mean = np.exp(eta)
-            return design[active].T @ (
-                (weights[active] * mean)[:, None] * design[active]
-            )
+            def gradient(beta: np.ndarray) -> np.ndarray:
+                eta = active_design @ beta + active_offset
+                if np.max(eta) > 709.0:
+                    return np.full(beta.shape, 1e300)
+                return active_design.T @ (active_weights * (np.exp(eta) - active_counts))
 
-        initial = np.linalg.lstsq(
-            design[active],
-            np.log(counts[active] + 0.1) - model_offset[active],
-            rcond=None,
-        )[0]
+            def information_at(beta: np.ndarray) -> np.ndarray:
+                eta = active_design @ beta + active_offset
+                if np.max(eta) > 709.0:
+                    return np.full((beta.size, beta.size), np.nan)
+                mean = np.exp(eta)
+                return active_design.T @ ((active_weights * mean)[:, None] * active_design)
+
+            initial = np.linalg.lstsq(
+                active_design,
+                np.log(active_counts + 0.1) - active_offset,
+                rcond=None,
+            )[0]
+        else:
+
+            def negative_loglike(beta: np.ndarray) -> float:
+                eta = design[active] @ beta + model_offset[active]
+                if np.max(eta) > 709.0:
+                    return 1e300
+                mean = np.exp(eta)
+                contributions = counts[active] * eta - mean - gammaln(counts[active] + 1.0)
+                value = -float(weights[active] @ contributions)
+                return value if np.isfinite(value) else 1e300
+
+            def gradient(beta: np.ndarray) -> np.ndarray:
+                eta = design[active] @ beta + model_offset[active]
+                if np.max(eta) > 709.0:
+                    return np.full(beta.shape, 1e300)
+                return design[active].T @ (weights[active] * (np.exp(eta) - counts[active]))
+
+            def information_at(beta: np.ndarray) -> np.ndarray:
+                eta = design[active] @ beta + model_offset[active]
+                if np.max(eta) > 709.0:
+                    return np.full((beta.size, beta.size), np.nan)
+                mean = np.exp(eta)
+                return design[active].T @ ((weights[active] * mean)[:, None] * design[active])
+
+            initial = np.linalg.lstsq(
+                design[active],
+                np.log(counts[active] + 0.1) - model_offset[active],
+                rcond=None,
+            )[0]
         optimizer_result = damped_newton(
             negative_loglike,
             gradient,
@@ -264,13 +317,20 @@ class PoissonRegressor:
         with np.errstate(over="ignore"):
             fitted_mean = np.exp(linear_index)
         active_mean = fitted_mean[active]
-        information = design[active].T @ (
-            (weights[active] * active_mean)[:, None] * design[active]
-        )
         score_rows = np.zeros_like(design)
-        score_rows[active] = design[active] * (
-            counts[active] - active_mean
-        )[:, None]
+        if use_prepared_arrays:
+            assert active_design is not None
+            assert active_counts is not None
+            assert active_weights is not None
+            information = active_design.T @ (
+                (active_weights * active_mean)[:, None] * active_design
+            )
+            score_rows[active] = active_design * (active_counts - active_mean)[:, None]
+        else:
+            information = design[active].T @ (
+                (weights[active] * active_mean)[:, None] * design[active]
+            )
+            score_rows[active] = design[active] * (counts[active] - active_mean)[:, None]
         score_norm = float(np.max(np.abs(score_rows.T @ weights)))
         relative_score_norm = scaled_score_norm(
             score_rows,
@@ -284,18 +344,14 @@ class PoissonRegressor:
         converged = bool(
             np.isfinite(optimizer_result.fun)
             and np.isfinite(coefficients).all()
-            and (
-                relative_score_norm <= convergence_threshold
-            )
+            and (relative_score_norm <= convergence_threshold)
         )
         information_valid = bool(
             converged
             and np.isfinite(information).all()
             and np.linalg.eigvalsh(information).min() > 0.0
         )
-        information_condition = (
-            float(np.linalg.cond(information)) if information_valid else np.inf
-        )
+        information_condition = float(np.linalg.cond(information)) if information_valid else np.inf
         if information_valid:
             covariance = covariance_from_scores(
                 information,
@@ -326,29 +382,34 @@ class PoissonRegressor:
             pvalues = np.full(coefficients.shape, np.nan)
 
         params = pd.Series(coefficients, index=feature_names, name="estimate")
-        covariance_frame = pd.DataFrame(
-            covariance, index=feature_names, columns=feature_names
-        )
-        standard_errors_series = pd.Series(
-            standard_errors, index=feature_names, name="std_err"
-        )
+        covariance_frame = pd.DataFrame(covariance, index=feature_names, columns=feature_names)
+        standard_errors_series = pd.Series(standard_errors, index=feature_names, name="std_err")
         zstats_series = pd.Series(zstats, index=feature_names, name="z")
         pvalues_series = pd.Series(pvalues, index=feature_names, name="p_value")
         loglike = -float(negative_loglike(coefficients))
-        pearson_chi2 = float(
-            np.sum(
-                weights[active]
-                * (counts[active] - active_mean) ** 2
-                / active_mean
+        if use_prepared_arrays:
+            assert active_counts is not None
+            assert active_weights is not None
+            pearson_chi2 = float(
+                np.sum(active_weights * (active_counts - active_mean) ** 2 / active_mean)
             )
-        )
-        deviance_terms = np.where(
-            counts[active] > 0.0,
-            xlogy(counts[active], counts[active] / active_mean)
-            - (counts[active] - active_mean),
-            active_mean,
-        )
-        deviance = float(2.0 * weights[active] @ deviance_terms)
+            deviance_terms = np.where(
+                active_counts > 0.0,
+                xlogy(active_counts, active_counts / active_mean) - (active_counts - active_mean),
+                active_mean,
+            )
+            deviance = float(2.0 * active_weights @ deviance_terms)
+        else:
+            pearson_chi2 = float(
+                np.sum(weights[active] * (counts[active] - active_mean) ** 2 / active_mean)
+            )
+            deviance_terms = np.where(
+                counts[active] > 0.0,
+                xlogy(counts[active], counts[active] / active_mean)
+                - (counts[active] - active_mean),
+                active_mean,
+            )
+            deviance = float(2.0 * weights[active] @ deviance_terms)
 
         return PoissonResult(
             params=params,

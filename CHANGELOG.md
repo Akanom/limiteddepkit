@@ -7,8 +7,21 @@ pre-release phase.
 
 ## [Unreleased]
 
+## [0.1.0a3] - 2026-07-28
+
 ### Added
 
+- Added a reproducible estimator benchmark and profiling harness with cold/warm
+  fit, prediction, post-estimation, and Python-allocation measurements.
+- Added an opt-in `engine="accelerated"` Poisson execution path that prepares
+  contiguous positive-weight arrays and the data-only log-factorial term once
+  while retaining bitwise-equivalent fitted results and the default reference
+  path.
+- Documented reviewed dependency-scanner capabilities and official artifact
+  hashes without blanket suppressions or accepted release exceptions.
+- Added a runnable real-world infant-mortality Poisson/NB2 example with explicit
+  HTTPS opt-in, a pinned Stata Press source hash, out-of-repository caching, and
+  a non-causal interpretation boundary.
 - Stable package-root `FactorVariableCompiler` for persisted Stata-style `i.`
   and `c.` design terms, `#` and `##` interactions, wildcard source expansion,
   explicit category/base control, prediction-schema enforcement, and bounded
@@ -99,6 +112,11 @@ pre-release phase.
 
 ### Changed
 
+- Freshly reran the controlled and public-data Stata/R parity tracks for
+  `0.1.0a3`: Stata passed 82/82 checks in each track, pinned R 4.5.1 passed
+  110/110 checks in each track, promoted Python/R passed 120/120 checks, and
+  promoted Stata passed 140/140 required checks with its predeclared ordinary-
+  Gamma non-applicability retained.
 - Documented explicit new-entity, known-entity future, and conditional panel
   prediction targets, including chronology and dynamic-lag leakage guards.
 - Balanced stratified class remainders across folds so both total fold sizes and
@@ -115,7 +133,7 @@ pre-release phase.
 - Added Stata random-effect variance-to-standard-deviation canonicalization and
   tightened pooled ordered-model reference optimization.
 
-## [0.1.0a2] - Release pending
+## [0.1.0a2] - 2026-07-22
 
 ### Security
 
