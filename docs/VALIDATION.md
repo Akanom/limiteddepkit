@@ -257,6 +257,12 @@ R tracks:
 | Controlled deterministic fixtures — R | Independent implementation check on the certification data | **PASS — 110/110; all eight families** |
 | Downloaded Stata Press examples — R | Independent application check on the same frozen observations | **PASS — 110/110; all eight families** |
 
+All four tracks were freshly prepared and rerun for the `0.1.0a3` release
+candidate on 28 July 2026. Stata 17 with `gologit2` 3.2.8 again passed 82/82
+checks in each track; pinned R 4.5.1 again passed 110/110 checks in each track.
+The generated evidence remains in ignored work directories and must be archived
+with the exact release commit when used to support a release or publication.
+
 Newer stable promotions—including Firth Binary Logit, Gaussian censoring, Poisson/NB2,
 the duration family, Random-effects Ordered Probit, and BUC Fixed-effects Ordered
 Logit—have the model-specific Python/reference evidence documented above and in their
@@ -301,6 +307,12 @@ rewrite any of the four completed outcomes above.
 |---|---|---|
 | Promoted-family applications — Python/R | Model-specific external replication for 12 stable promoted fits | **PASS — 120/120; all 12 models, 15 July 2026** |
 | Promoted-family applications — Stata | Manual application comparison where an aligned Stata target exists | **PASS — 140/140 required checks; one explicit Gamma skip** |
+
+Both promoted-family tracks were also freshly rerun for `0.1.0a3` on 28 July
+2026. Python/R passed 120/120 registered checks across all 12 fits. The manual
+Stata application passed 140/140 required checks, with the same predeclared
+ordinary-Gamma non-applicability recorded separately rather than counted as a
+pass.
 
 The completed R evidence includes seven industrial-package fits, three independent
 likelihood or adjusted-score implementations, and two exact likelihood or pseudo-sample

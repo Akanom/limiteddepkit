@@ -110,8 +110,8 @@ def test_r_dependency_setup_pins_versions_urls_and_hashes():
     assert "http://" not in setup
     assert "Get-FileHash -Algorithm SHA256" in setup
     assert "Unexpected package versions" in setup
-    assert 'Matrix = \"1.7.3\"' in setup
-    assert 'nlme = \"3.1.168\"' in setup
+    assert 'Matrix = "1.7.3"' in setup
+    assert 'nlme = "3.1.168"' in setup
     assert "Pinned packages did not resolve from the project library" in setup
 
     runner = (R_VALIDATION / "run_parity.R").read_text(encoding="utf-8")
@@ -126,15 +126,11 @@ def test_r_comparison_row_rejects_missing_or_nonfinite_values():
     assert passing["status"] == "PASS"
 
     for bad in (np.nan, np.inf, -np.inf):
-        failing = comparator._comparison_row(
-            "binary_logit", "estimate", [0.0, bad], 1e-8
-        )
+        failing = comparator._comparison_row("binary_logit", "estimate", [0.0, bad], 1e-8)
         assert failing["status"] == "FAIL"
         assert failing["nonfinite"] == 1
 
-    missing = comparator._comparison_row(
-        "binary_logit", "estimate", [0.0], 1e-8, missing=["x1"]
-    )
+    missing = comparator._comparison_row("binary_logit", "estimate", [0.0], 1e-8, missing=["x1"])
     assert missing["status"] == "FAIL"
     assert "x1" in missing["detail"]
 
@@ -172,7 +168,7 @@ def test_r_certificate_is_strict_and_written_as_completion_artifact(tmp_path: Pa
         (r_directory / name).write_text("fixture\n", encoding="utf-8")
     manifest = {
         "suite": "controlled_synthetic_certification",
-        "limiteddepkit_version": "0.1.0a1",
+        "limiteddepkit_version": comparator.EXPECTED_MANIFEST_CONTROLS["limiteddepkit_version"],
         "files": {},
     }
     (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
@@ -183,9 +179,7 @@ def test_r_certificate_is_strict_and_written_as_completion_artifact(tmp_path: Pa
         dict(comparator.EXPECTED_METADATA),
         _minimal_report(status="SKIP"),
     )
-    certificate = json.loads(
-        (r_directory / "parity_certificate.json").read_text(encoding="utf-8")
-    )
+    certificate = json.loads((r_directory / "parity_certificate.json").read_text(encoding="utf-8"))
     assert certificate["result"] == "FAIL"
     assert certificate["failed_checks"] == 0
     assert certificate["skipped_checks"] == 1

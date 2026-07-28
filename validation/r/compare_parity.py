@@ -161,7 +161,7 @@ REQUIRED_PYTHON_REFERENCES = {
 }
 
 EXPECTED_MANIFEST_CONTROLS = {
-    "limiteddepkit_version": "0.1.0a1",
+    "limiteddepkit_version": "0.1.0a3",
     "prediction_rows_per_model": 25,
     "quadrature_method": "ghermite",
     "ordered_optimizer_maxiter": 5_000,
@@ -226,8 +226,7 @@ def _verify_manifest(workdir: Path) -> dict[str, Any]:
     missing_required = sorted(required - set(registered))
     if missing_required:
         raise ValueError(
-            "Parity manifest is missing required file registrations: "
-            + ", ".join(missing_required)
+            "Parity manifest is missing required file registrations: " + ", ".join(missing_required)
         )
     errors: list[str] = []
     root = workdir.resolve()
@@ -292,8 +291,7 @@ def _read_metadata(r_directory: Path, manifest: dict[str, Any]) -> dict[str, str
     expected["suite"] = str(manifest.get("suite"))
     expected["prediction_rows_per_model"] = str(manifest.get("prediction_rows_per_model"))
     expected["panel_quadrature"] = (
-        "nonadaptive Gauss-Hermite, "
-        f"nAGQ={-int(manifest.get('quadrature_points'))}"
+        f"nonadaptive Gauss-Hermite, nAGQ={-int(manifest.get('quadrature_points'))}"
     )
     errors = [
         f"{key}: expected {value!r}, found {metadata.get(key)!r}"
@@ -436,9 +434,7 @@ def _compare_model(
         ("bic", 2.0 * tolerance["loglike"]),
     ):
         difference = abs(float(expected_fit[statistic]) - float(actual_fit[statistic]))
-        report.append(
-            _comparison_row(model, statistic, [difference], statistic_tolerance)
-        )
+        report.append(_comparison_row(model, statistic, [difference], statistic_tolerance))
     expected_groups = pd.to_numeric(pd.Series([expected_fit["n_groups"]]), errors="coerce").iloc[0]
     if np.isfinite(expected_groups):
         actual_groups = pd.to_numeric(pd.Series([actual_fit["n_groups"]]), errors="coerce").iloc[0]
@@ -511,9 +507,7 @@ def _compare_model(
         )
     )
     probability_sums = actual_predictions.groupby("obs_id", sort=False)["probability"].sum()
-    report.append(
-        _comparison_row(model, "probability_sum", (probability_sums - 1.0).abs(), 1e-10)
-    )
+    report.append(_comparison_row(model, "probability_sum", (probability_sums - 1.0).abs(), 1e-10))
     return report
 
 
@@ -524,7 +518,10 @@ def _markdown_table(report: pd.DataFrame) -> str:
         display[column] = display[column].map(lambda value: f"{value:.6g}")
     header = "| " + " | ".join(columns) + " |"
     rule = "| " + " | ".join("---" for _ in columns) + " |"
-    rows = ["| " + " | ".join(map(str, row)) + " |" for row in display.itertuples(index=False, name=None)]
+    rows = [
+        "| " + " | ".join(map(str, row)) + " |"
+        for row in display.itertuples(index=False, name=None)
+    ]
     return "\n".join([header, rule, *rows])
 
 
@@ -562,7 +559,13 @@ def _write_evidence(
         claim = "No R parity claim is supported because one or more checks failed."
     r_inputs = {
         name: _sha256(r_directory / name)
-        for name in ("estimates.csv", "covariance.csv", "fit.csv", "predictions.csv", "metadata.csv")
+        for name in (
+            "estimates.csv",
+            "covariance.csv",
+            "fit.csv",
+            "predictions.csv",
+            "metadata.csv",
+        )
     }
     certificate = {
         "schema_version": 1,
