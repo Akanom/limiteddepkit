@@ -38,6 +38,26 @@ print(ldk.__version__)
 For development checkouts, install from the repository URL or upload a built
 wheel. Pin the package version for any notebook intended as evidence.
 
+## Repository notebook artifact
+
+This repository includes a Kaggle-ready quickstart notebook at
+`notebooks/kaggle/limiteddepkit_quickstart.ipynb` with Kaggle metadata in
+`notebooks/kaggle/kernel-metadata.json`.
+
+To publish or update the public Kaggle notebook from an authenticated machine:
+
+```powershell
+cd notebooks/kaggle
+kaggle kernels push -p .
+```
+
+After Kaggle finishes processing the upload, the public notebook should be
+available under the kernel id recorded in `kernel-metadata.json`:
+`akanom/limiteddepkit-quickstart`.
+
+For Google Colab, open the tracked notebook from GitHub after the branch is
+pushed, or upload the same `.ipynb` file directly into Colab.
+
 ## Evidence rule
 
 Cloud notebook output can support examples and adoption notes, but formal

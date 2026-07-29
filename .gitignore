@@ -41,8 +41,8 @@ validation/r/work/
 validation/promoted/work/
 
 # Local cloud-notebook credentials and generated notebooks
-Kaggle/
-kaggle.json
-.kaggle/
+/Kaggle/
+/kaggle.json
+/.kaggle/
 .ipynb_checkpoints/
 *.ipynb_checkpoints/
