@@ -42,6 +42,9 @@ change those estimators' stable status.
   identification envelope.
 - [Ecosystem compatibility](ECOSYSTEM_COMPATIBILITY.md) describes conventions
   shared with `systemgmmkit` and deliberate differences for discrete outcomes.
+- [Ecosystem workflow comparison](ECOSYSTEM_COMPARISON.md) compares three
+  end-to-end real-data workflows with their closest alternatives, separating
+  runtime, diagnostics, parity, and capability evidence.
 - [Experimental model status](EXPERIMENTAL_MODELS.md) records validation
   evidence, remaining promotion gates, and package-scope decisions.
 - [Probability-aware validation workflows](ML_WORKFLOWS.md) document the

@@ -7,6 +7,12 @@ pre-release phase.
 
 ## [Unreleased]
 
+### Documentation
+
+- Added one evidence-bounded ecosystem comparison page covering real-data,
+  runtime, diagnostics, and cross-software parity for limited-outcome,
+  dynamic-panel GMM, and causal treatment-effect workflows.
+
 ## [0.1.0a4] - 2026-07-29
 
 ### Added
