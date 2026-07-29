@@ -1395,6 +1395,7 @@ Workflow and evidence guides:
 - [Validation strategy](docs/VALIDATION.md)
 - [Experimental model status](docs/EXPERIMENTAL_MODELS.md)
 - [Ecosystem compatibility](docs/ECOSYSTEM_COMPATIBILITY.md)
+- [Ecosystem workflow comparison](docs/ECOSYSTEM_COMPARISON.md)
 - [Dynamic ordinal numerical validation](docs/DYNAMIC_ORDINAL_VALIDATION.md)
 - [Cross-software evidence index](validation/PARITY_EVIDENCE.md)
 - [Stata parity harness](validation/stata/README.md)
