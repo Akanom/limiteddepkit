@@ -1,6 +1,8 @@
 # Validation strategy
 
-Validation follows the same layered philosophy used by `systemgmmkit`:
+Validation is package-based. Every gate must identify the `limiteddepkit` estimator, the
+limited-dependent-variable estimand, the reference implementation or identity being used,
+and the exact claim boundary. The maintained layers are:
 
 1. API and statistical-identity unit tests.
 2. Numerical comparison with established implementations where equivalent
@@ -101,7 +103,7 @@ quantiles, Gamma upper-tail evaluation, and survival/cumulative-hazard consisten
 
 These gates do not cover interval censoring, recurrent events, competing risks, frailty,
 or time-varying covariate histories. Censoring-aware held-out duration scores validate
-the experimental comparison workflow, not the fitted parametric likelihoods.
+the prediction-workflow layer, not the fitted parametric likelihoods.
 
 ## Fixed-effects ordinal gates
 
@@ -314,10 +316,11 @@ Stata application passed 140/140 required checks, with the same predeclared
 ordinary-Gamma non-applicability recorded separately rather than counted as a
 pass.
 
-The completed R evidence includes seven industrial-package fits, three independent
-likelihood or adjusted-score implementations, and two exact likelihood or pseudo-sample
-identities. Those evidence classes must remain visible: an identity check is not relabeled
-as industrial-package parity, and the combined result is not a universal equality claim.
+The completed R evidence is classified per `limiteddepkit` estimand: seven aligned
+external-package fits, three independent likelihood or adjusted-score implementations,
+and two exact likelihood or pseudo-sample identities. Those evidence classes must remain
+visible: an identity check is not relabeled as external-package parity, and the combined
+result is not a package-ranking exercise or a universal equality claim.
 
 The completed Stata pass has one explicit skip: Gamma duration because Stata's
 generalized Gamma command is not an exact ordinary-Gamma target. Firth Binary

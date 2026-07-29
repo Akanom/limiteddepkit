@@ -66,17 +66,14 @@ def _ordered_categories(
             raise ValueError("category_order must be a sequence of category labels.")
         ordered_values = list(category_order)
     if any(
-        isinstance(category, (dict, list, set, tuple, np.ndarray))
-        for category in ordered_values
+        isinstance(category, (dict, list, set, tuple, np.ndarray)) for category in ordered_values
     ):
         raise ValueError("Ordinal category labels must be scalar values.")
     if any(pd.isna(category) for category in ordered_values):
         raise ValueError("category_order must not contain missing labels.")
     if len(pd.unique(pd.Series(ordered_values, dtype="object"))) != len(ordered_values):
         raise ValueError("category_order must contain unique labels.")
-    unobserved = [
-        category for category in ordered_values if not np.any(values == category)
-    ]
+    unobserved = [category for category in ordered_values if not np.any(values == category)]
     outside_order = [
         value
         for value in pd.unique(values)
@@ -125,9 +122,7 @@ def _category_probabilities(
 ) -> np.ndarray:
     linear_predictor = X @ beta
     cumulative = _link_cdf(thresholds[None, :] - linear_predictor[:, None], link)
-    bounds = np.column_stack(
-        [np.zeros(X.shape[0]), cumulative, np.ones(X.shape[0])]
-    )
+    bounds = np.column_stack([np.zeros(X.shape[0]), cumulative, np.ones(X.shape[0])])
     return np.diff(bounds, axis=1)
 
 
@@ -178,9 +173,7 @@ def _numerical_jacobian(function: Any, point: np.ndarray) -> np.ndarray:
     for column, step in enumerate(steps):
         shift = np.zeros_like(point)
         shift[column] = step
-        jacobian[:, column] = (function(point + shift) - function(point - shift)) / (
-            2.0 * step
-        )
+        jacobian[:, column] = (function(point + shift) - function(point - shift)) / (2.0 * step)
     return jacobian
 
 
@@ -231,7 +224,7 @@ class OrderedResult:
         )
 
     def summary_frame(self) -> pd.DataFrame:
-        """Return the ecosystem-standard coefficient table."""
+        """Return limiteddepkit's standard coefficient table."""
         from .postestimation import summary_frame
 
         return summary_frame(self)
@@ -318,9 +311,7 @@ class OrderedResult:
 
         difference = restriction_matrix @ self.all_params.to_numpy(dtype=float) - null_values
         restricted_covariance = (
-            restriction_matrix
-            @ self.covariance.to_numpy(dtype=float)
-            @ restriction_matrix.T
+            restriction_matrix @ self.covariance.to_numpy(dtype=float) @ restriction_matrix.T
         )
         statistic = float(difference @ np.linalg.pinv(restricted_covariance) @ difference)
         degrees_of_freedom = int(np.linalg.matrix_rank(restriction_matrix))
@@ -393,9 +384,7 @@ class OrderedResult:
         average.columns.name = "feature"
         return average
 
-    def average_marginal_effects_inference(
-        self, X: Any, *, level: float = 0.95
-    ) -> pd.DataFrame:
+    def average_marginal_effects_inference(self, X: Any, *, level: float = 0.95) -> pd.DataFrame:
         """Return delta-method inference for average marginal effects."""
         if not 0.0 < level < 1.0:
             raise ValueError("level must be strictly between zero and one.")
@@ -413,15 +402,11 @@ class OrderedResult:
             beta = parameters[:n_features]
             thresholds = parameters[n_features:]
             linear_predictor = values @ beta
-            densities = _link_pdf(
-                thresholds[None, :] - linear_predictor[:, None], self.link
-            )
+            densities = _link_pdf(thresholds[None, :] - linear_predictor[:, None], self.link)
             density_bounds = np.column_stack(
                 [np.zeros(values.shape[0]), densities, np.zeros(values.shape[0])]
             )
-            category_slopes = (density_bounds[:, :-1] - density_bounds[:, 1:]).mean(
-                axis=0
-            )
+            category_slopes = (density_bounds[:, :-1] - density_bounds[:, 1:]).mean(axis=0)
             return (category_slopes[:, None] * beta[None, :]).reshape(-1)
 
         reported_parameters = self.all_params.to_numpy(dtype=float)
@@ -488,9 +473,7 @@ class OrderedResult:
         if at == "overall":
             evaluation = X if isinstance(X, pd.DataFrame) else values
         elif at == "mean":
-            evaluation = pd.DataFrame(
-                [values.mean(axis=0)], columns=self.feature_names
-            )
+            evaluation = pd.DataFrame([values.mean(axis=0)], columns=self.feature_names)
         elif isinstance(at, Mapping):
             unknown = set(at) - set(self.feature_names)
             if unknown:
@@ -549,8 +532,7 @@ class OrderedResult:
                 return float(
                     -np.sum(
                         target * np.log(np.clip(probabilities, 1e-15, 1.0))
-                        + (1.0 - target)
-                        * np.log(np.clip(1.0 - probabilities, 1e-15, 1.0))
+                        + (1.0 - target) * np.log(np.clip(1.0 - probabilities, 1e-15, 1.0))
                     )
                 )
 
@@ -580,32 +562,24 @@ class OrderedResult:
 
         stacked_parameters = np.concatenate(equation_parameters)
         n_restrictions = (n_equations - 1) * len(self.feature_names)
-        restriction_matrix = np.zeros(
-            (n_restrictions, stacked_parameters.size), dtype=float
-        )
+        restriction_matrix = np.zeros((n_restrictions, stacked_parameters.size), dtype=float)
         restriction_row = 0
         for equation in range(1, n_equations):
             for feature_index in range(len(self.feature_names)):
                 parameter_offset = feature_index + 1
                 restriction_matrix[restriction_row, parameter_offset] = -1.0
-                restriction_matrix[
-                    restriction_row, equation * equation_size + parameter_offset
-                ] = 1.0
+                restriction_matrix[restriction_row, equation * equation_size + parameter_offset] = (
+                    1.0
+                )
                 restriction_row += 1
 
         differences = restriction_matrix @ stacked_parameters
-        restriction_covariance = (
-            restriction_matrix @ stacked_covariance @ restriction_matrix.T
-        )
-        statistic = float(
-            differences @ np.linalg.pinv(restriction_covariance) @ differences
-        )
+        restriction_covariance = restriction_matrix @ stacked_covariance @ restriction_matrix.T
+        statistic = float(differences @ np.linalg.pinv(restriction_covariance) @ differences)
         degrees_of_freedom = int(np.linalg.matrix_rank(restriction_matrix))
         coefficient_table = pd.DataFrame(
             [parameters[1:] for parameters in equation_parameters],
-            index=[
-                f"{categories[index]} | higher" for index in range(n_equations)
-            ],
+            index=[f"{categories[index]} | higher" for index in range(n_equations)],
             columns=self.feature_names,
         )
         coefficient_table.index.name = "cumulative_split"
@@ -669,9 +643,7 @@ class _OrderedModel:
             np.clip(cumulative_shares, 1e-6, 1 - 1e-6)
             / np.clip(1 - cumulative_shares, 1e-6, 1 - 1e-6)
         )
-        raw_thresholds = np.r_[
-            initial_thresholds[0], np.log(np.diff(initial_thresholds))
-        ]
+        raw_thresholds = np.r_[initial_thresholds[0], np.log(np.diff(initial_thresholds))]
         initial = np.r_[np.zeros(n_features), raw_thresholds]
 
         def negative_loglike(parameters: np.ndarray) -> float:
@@ -710,8 +682,7 @@ class _OrderedModel:
         fitted_raw_thresholds = fitted.x[n_features:]
         thresholds = _unpack_thresholds(fitted_raw_thresholds)
         threshold_names = [
-            f"{categories[index]} | {categories[index + 1]}"
-            for index in range(n_thresholds)
+            f"{categories[index]} | {categories[index + 1]}" for index in range(n_thresholds)
         ]
         parameter_names = feature_names + [f"threshold: {name}" for name in threshold_names]
 
@@ -737,9 +708,7 @@ class _OrderedModel:
             else np.full_like(information, np.nan)
         )
         transformation = np.eye(fitted.x.size)
-        transformation[n_features:, n_features:] = _threshold_jacobian(
-            fitted_raw_thresholds
-        )
+        transformation[n_features:, n_features:] = _threshold_jacobian(fitted_raw_thresholds)
         covariance_values = transformation @ raw_covariance @ transformation.T
         covariance_values = (covariance_values + covariance_values.T) / 2.0
         inference_valid = bool(inference_valid and np.isfinite(covariance_values).all())

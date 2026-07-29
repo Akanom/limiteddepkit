@@ -43,9 +43,9 @@ separate fixed-`T` conditional design.
 
 ## Extracted from the installed package
 
-- `TreatmentEffect` is ordinary linear 2SLS. Endogeneity alone does not make a
-  dependent variable limited. Its source is preserved in `_out_of_scope/` for
-  later migration to a causal/IV package.
+- `TreatmentEffect` was ordinary linear 2SLS. Endogeneity alone does not make a
+  dependent variable limited. Its migration to `causekit.IV2SLS` is complete;
+  the obsolete source snapshot was removed rather than retained or duplicated.
 - `GaussianMixtureRegression` and the historical `SwitchingRegression` alias
   describe an iid continuous Gaussian mixture. That is a latent-class model,
   not a limited-response model. Their source is preserved in

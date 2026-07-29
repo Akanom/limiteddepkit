@@ -91,12 +91,8 @@ def _conditional_probabilities(
     link: str,
 ) -> np.ndarray:
     linear_predictor = values @ beta + random_effects
-    cumulative = _link_cdf(
-        thresholds[None, :] - linear_predictor[:, None], link
-    )
-    bounds = np.column_stack(
-        [np.zeros(values.shape[0]), cumulative, np.ones(values.shape[0])]
-    )
+    cumulative = _link_cdf(thresholds[None, :] - linear_predictor[:, None], link)
+    bounds = np.column_stack([np.zeros(values.shape[0]), cumulative, np.ones(values.shape[0])])
     return np.diff(bounds, axis=1)
 
 
@@ -165,7 +161,7 @@ class RandomEffectsOrderedResult:
 
     @property
     def n_entities(self) -> int:
-        """Alias matching the ecosystem's panel terminology."""
+        """Alias matching limiteddepkit's panel terminology."""
         return self.n_groups
 
     @property
@@ -250,12 +246,8 @@ class RandomEffectsOrderedResult:
                     self.link,
                 )
         else:
-            effects = _resolved_random_effects(
-                random_effects, nobs=values.shape[0], entity=entity
-            )
-            probabilities = _conditional_probabilities(
-                values, beta, thresholds, effects, self.link
-            )
+            effects = _resolved_random_effects(random_effects, nobs=values.shape[0], entity=entity)
+            probabilities = _conditional_probabilities(values, beta, thresholds, effects, self.link)
         return pd.DataFrame(probabilities, columns=self.categories)
 
     def predict(
@@ -312,9 +304,7 @@ class RandomEffectsOrderedResult:
             log_marginal = float(logsumexp(log_posterior))
             posterior_weights = np.exp(log_posterior - log_marginal)
             posterior_mean = float(posterior_weights @ node_effects)
-            posterior_variance = float(
-                posterior_weights @ (node_effects - posterior_mean) ** 2
-            )
+            posterior_variance = float(posterior_weights @ (node_effects - posterior_mean) ** 2)
             rows.append(
                 {
                     "entity": label,
@@ -366,17 +356,11 @@ class RandomEffectsOrderedResult:
         thresholds = self.thresholds.to_numpy(dtype=float)
         for label in pd.unique(entities):
             selected = np.flatnonzero(entities == label)
-            posterior_weights = np.asarray(
-                posterior.at[label, "posterior_weights"], dtype=float
-            )
+            posterior_weights = np.asarray(posterior.at[label, "posterior_weights"], dtype=float)
             if posterior_weights.shape != node_effects.shape:
                 raise ValueError("posterior node weights are incompatible with this result.")
-            group_probabilities = np.zeros(
-                (len(selected), len(self.categories)), dtype=float
-            )
-            for weight, random_intercept in zip(
-                posterior_weights, node_effects, strict=True
-            ):
+            group_probabilities = np.zeros((len(selected), len(self.categories)), dtype=float)
+            for weight, random_intercept in zip(posterior_weights, node_effects, strict=True):
                 group_probabilities += weight * _conditional_probabilities(
                     values[selected],
                     beta,
@@ -461,9 +445,7 @@ class _RandomEffectsOrdered:
         n_features = values.shape[1]
         n_thresholds = categories.size - 1
         pooled_thresholds = pooled.thresholds.to_numpy(dtype=float)
-        raw_thresholds = np.r_[
-            pooled_thresholds[0], np.log(np.diff(pooled_thresholds))
-        ]
+        raw_thresholds = np.r_[pooled_thresholds[0], np.log(np.diff(pooled_thresholds))]
         initial = np.r_[pooled.params.to_numpy(dtype=float), raw_thresholds, np.log(0.5)]
         nodes, weights = hermgauss(quadrature_points)
         log_weights = np.log(weights) - 0.5 * np.log(np.pi)
@@ -522,13 +504,10 @@ class _RandomEffectsOrdered:
             and scaled_score_norm <= stationarity_limit
         )
         threshold_names = [
-            f"{categories[index]} | {categories[index + 1]}"
-            for index in range(n_thresholds)
+            f"{categories[index]} | {categories[index + 1]}" for index in range(n_thresholds)
         ]
         parameter_names = (
-            feature_names
-            + [f"threshold: {name}" for name in threshold_names]
-            + ["sigma_entity"]
+            feature_names + [f"threshold: {name}" for name in threshold_names] + ["sigma_entity"]
         )
         information = _numerical_hessian(negative_loglike, fitted.x)
         information = (information + information.T) / 2.0

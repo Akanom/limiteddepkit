@@ -21,7 +21,7 @@ from limiteddepkit import (
 
 
 @pytest.fixture(scope="module")
-def ecosystem_results():
+def interoperability_results():
     rng = np.random.default_rng(734)
     X = pd.DataFrame({"x1": rng.uniform(-1, 1, 500), "x2": rng.uniform(-1, 1, 500)})
     eta = X.to_numpy() @ np.array([0.7, -0.4])
@@ -38,8 +38,8 @@ def ecosystem_results():
     ]
 
 
-def test_result_objects_follow_shared_inference_contract(ecosystem_results):
-    _, results = ecosystem_results
+def test_result_objects_follow_shared_inference_contract(interoperability_results):
+    _, results = interoperability_results
     for result in results:
         table = result.summary_frame()
         assert list(table.columns) == ["coef", "std_err", "z", "p_value"]
@@ -51,8 +51,8 @@ def test_result_objects_follow_shared_inference_contract(ecosystem_results):
         assert vcov(result).equals(result.covariance)
 
 
-def test_package_level_prediction_and_effect_wrappers(ecosystem_results):
-    X, results = ecosystem_results
+def test_package_level_prediction_and_effect_wrappers(interoperability_results):
+    X, results = interoperability_results
     for result in results:
         sample = X.iloc[:10]
         assert predict(result, sample).equals(result.predict(sample))
@@ -61,8 +61,8 @@ def test_package_level_prediction_and_effect_wrappers(ecosystem_results):
         assert margins(result, X).equals(result.margins(X))
 
 
-def test_generic_linear_hypotheses_cover_all_ordinal_results(ecosystem_results):
-    _, results = ecosystem_results
+def test_generic_linear_hypotheses_cover_all_ordinal_results(interoperability_results):
+    _, results = interoperability_results
     for result in results:
         first_parameter = result.all_params.index[0]
         combination = lincom(result, {first_parameter: 1.0})

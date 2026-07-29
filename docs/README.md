@@ -40,8 +40,8 @@ change those estimators' stable status.
 - [Dynamic fixed-effects Ordered Logit](DYNAMIC_FIXED_EFFECTS_ORDINAL.md) documents the
   experimental four-outcome-history MRV conditional estimator and its exact-stayer
   identification envelope.
-- [Ecosystem compatibility](ECOSYSTEM_COMPATIBILITY.md) describes conventions
-  shared with `systemgmmkit` and deliberate differences for discrete outcomes.
+- [Package interoperability](PACKAGE_INTEROPERABILITY.md) describes the result and
+  post-estimation conventions used inside `limiteddepkit`.
 - [Experimental model status](EXPERIMENTAL_MODELS.md) records validation
   evidence, remaining promotion gates, and package-scope decisions.
 - [Probability-aware validation workflows](ML_WORKFLOWS.md) document the
@@ -52,10 +52,12 @@ change those estimators' stable status.
   development.
 - [Public discussion drafts](PUBLIC_DISCUSSION_DRAFTS.md) provides starter
   GitHub Discussion posts for roadmap, validation, and adoption threads.
+- [Kaggle and Google Colab usage](CLOUD_NOTEBOOKS.md) records safe cloud-notebook
+  rules for package-scoped examples and validation.
 
 ## Validation evidence
 
-- [Cross-software parity evidence index](../validation/PARITY_EVIDENCE.md)
+- [Package validation evidence index](../validation/PARITY_EVIDENCE.md)
   records the four completed pre-expansion Stata/R outcomes and the separate
   promoted-family application result, with SHA-256 evidence identities.
 - [Validation overview](VALIDATION.md) records the maintained reference and

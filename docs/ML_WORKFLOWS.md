@@ -545,7 +545,7 @@ Row-aligned arrays belong in `fit_context`, `predict_context`, or `score_context
 sliced by fold. Unsupported user keywords are rejected so a typo cannot silently switch
 an estimator back to a default specification.
 
-## Optional industrial-package bridges
+## Optional external-estimator bridges
 
 The bridge module normalizes prediction methods while importing optional packages only
 when `fit()` is called. It does not claim that differently specified models share an
@@ -571,7 +571,8 @@ sklearn_logit = sklearn_bridge(
 
 Scikit-learn estimators are cloned by default so a fold cannot mutate and reuse a previous
 fit. Generic callbacks support model-specific lifelines, scikit-survival, Biogeme, Bambi,
-or other ecosystems without pretending their fit/prediction signatures are universal.
+or other external estimators without pretending their fit/prediction signatures are
+universal.
 Optional libraries remain optional; importing `limiteddepkit.ml` does not import them.
 
 Bridges never invent econometric validity. Supply an explicit diagnostics callback when

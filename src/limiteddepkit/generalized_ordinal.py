@@ -49,8 +49,7 @@ def _interior_inference(
         covariance_values = np.linalg.inv(information)
         covariance_values = (covariance_values + covariance_values.T) / 2.0
         valid = bool(
-            np.isfinite(covariance_values).all()
-            and np.min(np.diag(covariance_values)) >= -1e-12
+            np.isfinite(covariance_values).all() and np.min(np.diag(covariance_values)) >= -1e-12
         )
     if valid:
         standard_error_values = np.sqrt(np.clip(np.diag(covariance_values), 0.0, None))
@@ -141,18 +140,14 @@ def _generalized_marginal_effects(
     densities = cumulative * (1.0 - cumulative)
     weighted_slopes = densities[:, :, None] * slopes[None, :, :]
     zero_boundary = np.zeros((X.shape[0], 1, X.shape[1]), dtype=float)
-    derivative_bounds = np.concatenate(
-        [zero_boundary, weighted_slopes, zero_boundary], axis=1
-    )
+    derivative_bounds = np.concatenate([zero_boundary, weighted_slopes, zero_boundary], axis=1)
     return derivative_bounds[:, :-1, :] - derivative_bounds[:, 1:, :]
 
 
 def _effects_frame(
     effects: np.ndarray, categories: np.ndarray, feature_names: tuple[str, ...]
 ) -> pd.DataFrame:
-    columns = pd.MultiIndex.from_product(
-        [categories, feature_names], names=["category", "feature"]
-    )
+    columns = pd.MultiIndex.from_product([categories, feature_names], names=["category", "feature"])
     return pd.DataFrame(effects.reshape(effects.shape[0], -1), columns=columns)
 
 
@@ -190,9 +185,7 @@ def _average_effects_inference(
         pvalues = np.full_like(estimates, np.nan)
         lower = np.full_like(estimates, np.nan)
         upper = np.full_like(estimates, np.nan)
-    index = pd.MultiIndex.from_product(
-        [categories, feature_names], names=["category", "feature"]
-    )
+    index = pd.MultiIndex.from_product([categories, feature_names], names=["category", "feature"])
     output = pd.DataFrame(
         {
             "estimate": estimates,
@@ -208,9 +201,7 @@ def _average_effects_inference(
     return output
 
 
-def _validate_result_X(
-    X: Any, feature_names: tuple[str, ...]
-) -> tuple[np.ndarray, list[str]]:
+def _validate_result_X(X: Any, feature_names: tuple[str, ...]) -> tuple[np.ndarray, list[str]]:
     values, names = _as_2d_array(X)
     if values.shape[1] != len(feature_names):
         raise ValueError(f"X has {values.shape[1]} columns; expected {len(feature_names)}.")
@@ -304,7 +295,7 @@ class GeneralizedOrderedLogitResult:
 
     @property
     def params(self) -> pd.Series:
-        """Ecosystem-compatible alias for all fitted parameters."""
+        """Package-compatible alias for all fitted parameters."""
         return self.all_params
 
     def summary_frame(self) -> pd.DataFrame:
@@ -347,9 +338,7 @@ class GeneralizedOrderedLogitResult:
         average.columns.name = "feature"
         return average
 
-    def average_marginal_effects_inference(
-        self, X: Any, *, level: float = 0.95
-    ) -> pd.DataFrame:
+    def average_marginal_effects_inference(self, X: Any, *, level: float = 0.95) -> pd.DataFrame:
         """Return delta-method AME inference for an interior solution."""
         values, _ = _validate_result_X(X, self.feature_names)
         n_thresholds = len(self.thresholds)
@@ -358,9 +347,9 @@ class GeneralizedOrderedLogitResult:
         def ame(parameters: np.ndarray) -> np.ndarray:
             thresholds = parameters[:n_thresholds]
             slopes = parameters[n_thresholds:].reshape(n_thresholds, n_features)
-            return _generalized_marginal_effects(values, thresholds, slopes).mean(
-                axis=0
-            ).reshape(-1)
+            return (
+                _generalized_marginal_effects(values, thresholds, slopes).mean(axis=0).reshape(-1)
+            )
 
         return _average_effects_inference(
             ame,
@@ -444,8 +433,9 @@ class GeneralizedOrderedLogit:
 
         constraints = {
             "type": "ineq",
-            "fun": lambda parameters: np.diff(cumulative_indices(parameters), axis=1).ravel()
-            - minimum_gap,
+            "fun": lambda parameters: (
+                np.diff(cumulative_indices(parameters), axis=1).ravel() - minimum_gap
+            ),
         }
         fitted = minimize(
             objective,
@@ -476,13 +466,10 @@ class GeneralizedOrderedLogit:
             and minimum_fitted_gap >= minimum_gap - 1e-7
         )
         threshold_names = [
-            f"{categories[index]} | {categories[index + 1]}"
-            for index in range(n_thresholds)
+            f"{categories[index]} | {categories[index + 1]}" for index in range(n_thresholds)
         ]
         parameter_names = [f"threshold: {name}" for name in threshold_names] + [
-            f"slope {split}: {feature}"
-            for split in threshold_names
-            for feature in feature_names
+            f"slope {split}: {feature}" for split in threshold_names for feature in feature_names
         ]
         covariance, standard_errors, zstats, pvalues, inference_valid = _interior_inference(
             objective,
@@ -493,9 +480,7 @@ class GeneralizedOrderedLogit:
         )
         return GeneralizedOrderedLogitResult(
             thresholds=pd.Series(thresholds, index=threshold_names, name="threshold"),
-            threshold_slopes=pd.DataFrame(
-                slopes, index=threshold_names, columns=feature_names
-            ),
+            threshold_slopes=pd.DataFrame(slopes, index=threshold_names, columns=feature_names),
             covariance=covariance,
             standard_errors=standard_errors,
             zstats=zstats,
@@ -562,7 +547,7 @@ class PartialProportionalOddsResult:
 
     @property
     def params(self) -> pd.Series:
-        """Ecosystem-compatible alias for all fitted parameters."""
+        """Package-compatible alias for all fitted parameters."""
         return self.all_params
 
     def summary_frame(self) -> pd.DataFrame:
@@ -603,9 +588,7 @@ class PartialProportionalOddsResult:
         average.columns.name = "feature"
         return average
 
-    def average_marginal_effects_inference(
-        self, X: Any, *, level: float = 0.95
-    ) -> pd.DataFrame:
+    def average_marginal_effects_inference(self, X: Any, *, level: float = 0.95) -> pd.DataFrame:
         """Return delta-method AME inference for an interior solution."""
         values, _ = _validate_result_X(X, self.feature_names)
         n_thresholds = len(self.thresholds)
@@ -613,25 +596,21 @@ class PartialProportionalOddsResult:
             feature for feature in self.feature_names if feature not in self.varying_features
         ]
         common_indices = [self.feature_names.index(feature) for feature in common_features]
-        varying_indices = [
-            self.feature_names.index(feature) for feature in self.varying_features
-        ]
+        varying_indices = [self.feature_names.index(feature) for feature in self.varying_features]
         n_common = len(common_indices)
         n_varying = len(varying_indices)
 
         def ame(parameters: np.ndarray) -> np.ndarray:
             thresholds = parameters[:n_thresholds]
             common = parameters[n_thresholds : n_thresholds + n_common]
-            varying = parameters[n_thresholds + n_common :].reshape(
-                n_thresholds, n_varying
-            )
+            varying = parameters[n_thresholds + n_common :].reshape(n_thresholds, n_varying)
             slopes = np.empty((n_thresholds, len(self.feature_names)), dtype=float)
             if n_common:
                 slopes[:, common_indices] = common
             slopes[:, varying_indices] = varying
-            return _generalized_marginal_effects(values, thresholds, slopes).mean(
-                axis=0
-            ).reshape(-1)
+            return (
+                _generalized_marginal_effects(values, thresholds, slopes).mean(axis=0).reshape(-1)
+            )
 
         return _average_effects_inference(
             ame,
@@ -707,9 +686,7 @@ class PartialProportionalOdds:
         def unpack(parameters: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
             thresholds = parameters[:n_thresholds]
             common = parameters[n_thresholds : n_thresholds + n_common]
-            varying = parameters[n_thresholds + n_common :].reshape(
-                n_thresholds, n_varying
-            )
+            varying = parameters[n_thresholds + n_common :].reshape(n_thresholds, n_varying)
             slopes = np.empty((n_thresholds, len(feature_names)), dtype=float)
             if n_common:
                 slopes[:, common_indices] = common
@@ -731,8 +708,9 @@ class PartialProportionalOdds:
 
         constraints = {
             "type": "ineq",
-            "fun": lambda parameters: np.diff(cumulative_indices(parameters), axis=1).ravel()
-            - minimum_gap,
+            "fun": lambda parameters: (
+                np.diff(cumulative_indices(parameters), axis=1).ravel() - minimum_gap
+            ),
         }
         fitted = minimize(
             objective,
@@ -763,8 +741,7 @@ class PartialProportionalOdds:
             and minimum_fitted_gap >= minimum_gap - 1e-7
         )
         threshold_names = [
-            f"{categories[index]} | {categories[index + 1]}"
-            for index in range(n_thresholds)
+            f"{categories[index]} | {categories[index + 1]}" for index in range(n_thresholds)
         ]
         parameter_names = (
             [f"threshold: {name}" for name in threshold_names]
@@ -788,9 +765,7 @@ class PartialProportionalOdds:
             varying_params=pd.DataFrame(
                 slopes[:, varying_indices], index=threshold_names, columns=self.varying
             ),
-            threshold_slopes=pd.DataFrame(
-                slopes, index=threshold_names, columns=feature_names
-            ),
+            threshold_slopes=pd.DataFrame(slopes, index=threshold_names, columns=feature_names),
             covariance=covariance,
             standard_errors=standard_errors,
             zstats=zstats,

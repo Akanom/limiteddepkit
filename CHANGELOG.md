@@ -7,6 +7,14 @@ pre-release phase.
 
 ## [Unreleased]
 
+## [0.1.0a4] - 2026-07-29
+
+### Removed
+
+- Removed the non-installable legacy `TreatmentEffect` source and test snapshots after
+  completion of the ownership migration to `causekit.IV2SLS`. LimitedDepKit retains no
+  causal/IV estimator implementation or duplicate archival source.
+
 ## [0.1.0a3] - 2026-07-28
 
 ### Added

@@ -1,4 +1,4 @@
-"""Ecosystem-aligned post-estimation functions for limiteddepkit results."""
+"""Package-level post-estimation functions for limiteddepkit results."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def _all_params(result: Any) -> pd.Series:
 
 
 def summary_frame(result: Any) -> pd.DataFrame:
-    """Return the common coefficient-table representation used across the ecosystem."""
+    """Return limiteddepkit's common coefficient-table representation."""
     parameters = _all_params(result)
     return pd.DataFrame(
         {
@@ -56,9 +56,7 @@ def predict_proba(result: Any, X: Any, **kwargs: Any) -> pd.DataFrame:
     return result.predict_proba(X, **kwargs)
 
 
-def posterior_random_effects(
-    result: Any, X: Any, y: Any, *, entity: Any
-) -> pd.DataFrame:
+def posterior_random_effects(result: Any, X: Any, y: Any, *, entity: Any) -> pd.DataFrame:
     """Return entity posterior summaries for a fitted random-effects result."""
     if not hasattr(result, "posterior_random_effects"):
         raise TypeError("Result does not support posterior random effects.")

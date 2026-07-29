@@ -1,4 +1,4 @@
-# Promoted-family public-data parity
+# Promoted-family package validation
 
 This directory contains the separate application harness for the stable model
 families added after the original eight-model binary/ordinal certificate. It
@@ -6,9 +6,9 @@ does **not** replace or rewrite the frozen evidence under `validation/stata`
 and `validation/r`.
 
 The suite uses one prepared sample per estimand and records four different
-evidence classes:
+package-aligned evidence classes:
 
-- **industrial-package parity**: an established R or Stata estimator fits the
+- **aligned external-package reference**: an established R or Stata estimator fits the
   aligned likelihood;
 - **numerical implementation parity**: the same integrated likelihood is fit
   with a different quadrature implementation;
@@ -19,7 +19,8 @@ evidence classes:
 
 These labels matter. A likelihood identity is useful replication evidence, but
 it must not be reported as if a different duration or panel estimator agreed by
-accident.
+accident. The harness validates `limiteddepkit` model claims; it is not a general
+ranking or comparison workflow across unrelated packages.
 
 ## Model map
 
@@ -111,8 +112,8 @@ Every cached source is still checked against its pinned SHA-256 before use.
 
 The run completed on 15 July 2026 with R 4.5.1, MASS 7.3-65,
 survival 3.8-3, numDeriv 2016.8-1.1, and ordinal 2025.12-29. All 12 models fitted and all
-**120 of 120** registered comparisons passed. The evidence comprised seven
-industrial-package fits, three independent likelihood/score implementations,
+**120 of 120** registered comparisons passed. The evidence comprised seven aligned
+external-package fits, three independent likelihood/score implementations,
 and two likelihood or pseudo-sample identities.
 
 | Quantity | Largest absolute Python/R difference |

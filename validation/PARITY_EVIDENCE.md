@@ -1,9 +1,11 @@
-# Cross-software parity evidence index
+# Package validation evidence index
 
 This is the committed, data-free index for the completed `limiteddepkit`
-Python–Stata and Python–R comparisons regenerated on 14 July 2026. It records
-the exact outcome and SHA-256 identity of the generated evidence without
-redistributing the ignored work directories or third-party data.
+Python–Stata and Python–R reference checks regenerated on 14 July 2026. It records
+the exact outcome and SHA-256 identity of generated package validation evidence without
+redistributing the ignored work directories or third-party data. It is not a
+repository-wide comparison workflow; each package should maintain evidence for its own
+model families.
 
 ## Certified outcome
 
@@ -14,7 +16,7 @@ redistributing the ignored work directories or third-party data.
 | Frozen real-data application | Stata | 8 | **PASS** | 82 | 0 | 0 |
 | Frozen real-data application | R | 8 | **PASS** | 110 | 0 | 0 |
 
-All four comparisons cover Binary Logit, Binary Probit, Ordered Logit,
+All four package-aligned tracks cover Binary Logit, Binary Probit, Ordered Logit,
 Ordered Probit, Generalized Ordered Logit, Partial Proportional Odds, static
 random-effects Ordered Logit, and dynamic random-effects Ordered Logit.
 
@@ -107,7 +109,7 @@ passed **120 of 120** declared checks across 12 models:
 | R 4.5.1 | 12 | **PASS** | 120 | 0 |
 | Stata | 11 exact/aligned runs plus one explicit Gamma skip | **PASS** | 140 | 0 |
 
-The R evidence is classified per estimand: seven industrial-package fits,
+The R evidence is classified per `limiteddepkit` estimand: seven aligned external-package fits,
 three independent likelihood/score implementations, and two exact likelihood/pseudo-sample
 identities. It is application evidence, not a new controlled certification
 claim. The LBW, infant-mortality, Mroz labor-supply, cancer-duration,

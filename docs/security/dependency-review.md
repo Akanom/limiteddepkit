@@ -36,9 +36,9 @@ below so the artifact can be matched during scanner review.
 | Install scripts | `ruff-0.16.0.tar.gz` | `e460aafd5495ec89efaa6ced2e4a9a581116451e1c88b9d37ef497e0f8e93982` | `EXPECTED, DEVELOPMENT-ONLY`. The flagged Rust build files and test fixture occur in the sdist. Prefer the official wheel. |
 | Network access | `matplotlib-3.11.1-cp311-cp311-macosx_10_12_x86_64.whl` | `b7cf158e7add54a8d51ac9b5a84abd6d4e13ed4951b4f25f1c5139f41c2addb2` | `EXPECTED, OPTIONAL`. Plotting is lazy and local; estimator and package imports do not fetch remote resources. |
 
-The screenshots' `pydynpd`, `linearmodels`, and mypy artifacts apply to
-systemgmmkit's optional development/backend graph, not limiteddepkit's declared
-dependencies. They are reviewed in that repository rather than being added here.
+The screenshots' `pydynpd`, `linearmodels`, and mypy artifacts are outside
+limiteddepkit's declared dependency graph. They should be reviewed in the owning package
+rather than being added here.
 The permissive development bounds may resolve newer versions than the currently
 committed hash-locked graphs (NumPy 2.5.1 versus the current 2.4.6 lock); lock
 updates remain separate reviewed changes.

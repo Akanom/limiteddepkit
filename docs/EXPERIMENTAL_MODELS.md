@@ -140,9 +140,10 @@ parity, recovery, uncertainty-coverage, or inferential certification.
 - Binary Logit and Probit completed their promotion gate and now belong to the
   stable root rather than this namespace.
 - Ordinary linear 2SLS `TreatmentEffect` and the iid Gaussian mixture formerly
-  called `SwitchingRegression` were extracted from the installed package.
-  Their snapshots remain under `_out_of_scope/` pending migration to causal/IV
-  and mixture/regime packages, respectively.
+  called `SwitchingRegression` were extracted from the installed package. The
+  2SLS migration to `causekit.IV2SLS` is complete and its obsolete snapshot is
+  removed; the mixture snapshot remains under `_out_of_scope/` pending migration
+  to a mixture/regime package.
 - Generalized additive models and ordinary quantile regression are not planned
   for this package merely because they are econometric models. The in-scope
   quantile addition is fixed-boundary `CensoredQuantileRegression`; it remains

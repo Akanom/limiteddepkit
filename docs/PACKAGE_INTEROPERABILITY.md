@@ -1,7 +1,8 @@
-# Ecosystem compatibility contract
+# Package interoperability contract
 
-`limiteddepkit` is methodologically separate from `systemgmmkit`, but its result
-and post-estimation conventions intentionally follow the same ecosystem design.
+`limiteddepkit` owns its limited-dependent-variable model scope. Its result and
+post-estimation conventions are designed to be familiar to users of related econometric
+toolkits without making this package the place where unrelated packages are compared.
 
 All supported binary and ordinal result objects expose:
 
@@ -19,7 +20,7 @@ and dynamic results instead provide population-averaged, conditional, or
 posterior prediction methods appropriate to their panel structure; they do not
 currently expose the pooled-model margins or plotting interfaces.
 
-Package-level post-estimation functions mirror the `systemgmmkit` calling style:
+Package-level post-estimation functions expose a consistent calling style:
 
 ```python
 from limiteddepkit import confint, margins, predict, vcov
@@ -30,10 +31,10 @@ intervals = confint(result)
 probability_margins = margins(result, X)
 ```
 
-The package-root `varlist(data, variables, exclude=...)` helper provides a
-deterministic string-based input-selection bridge without coupling estimator
-calculation state to `systemgmmkit` or Universal Output Hub. Its wildcard and
-ordering rules are documented in [Stata-style variable lists](DATA_CONTRACTS.md).
+The package-root `varlist(data, variables, exclude=...)` helper provides a deterministic
+string-based input-selection bridge without coupling estimator calculation state to other
+packages or Universal Output Hub. Its wildcard and ordering rules are documented in
+[Stata-style variable lists](DATA_CONTRACTS.md).
 `FactorVariableCompiler` builds a persisted numeric DataFrame design on that
 contract, including explicit category bases and interaction metadata. Universal
 Output Hub remains a consumer of labeled fitted parameters and does not own

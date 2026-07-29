@@ -71,7 +71,7 @@ def test_population_averaged_probabilities_are_valid(fitted_panel_model):
     assert set(result.predict(X.iloc[:20])).issubset(set(result.categories))
 
 
-def test_random_effects_result_uses_ecosystem_contract(fitted_panel_model):
+def test_random_effects_result_uses_package_contract(fitted_panel_model):
     _, _, _, result = fitted_panel_model
     table = result.summary_frame()
 
@@ -97,22 +97,20 @@ def test_gauss_hermite_normal_scaling():
     random_effects = np.sqrt(2.0) * sigma * nodes
 
     assert weights.sum() / np.sqrt(np.pi) == pytest.approx(1.0)
-    assert np.sum(weights * random_effects**2) / np.sqrt(np.pi) == pytest.approx(
-        sigma**2
-    )
+    assert np.sum(weights * random_effects**2) / np.sqrt(np.pi) == pytest.approx(sigma**2)
 
 
 def test_posterior_random_effects_and_predictive_probabilities(fitted_panel_model):
     X, y, entity, result = fitted_panel_model
     posterior = result.posterior_random_effects(X, y, entity=entity)
-    predictive = result.posterior_predict_proba(X.iloc[:20], entity=entity[:20], posterior=posterior)
+    predictive = result.posterior_predict_proba(
+        X.iloc[:20], entity=entity[:20], posterior=posterior
+    )
 
     assert len(posterior) == result.n_entities
     assert posterior.index.name == "entity"
     assert np.all(posterior["posterior_sd"] >= 0)
-    assert posterior["log_marginal_likelihood"].sum() == pytest.approx(
-        result.loglike, abs=1e-7
-    )
+    assert posterior["log_marginal_likelihood"].sum() == pytest.approx(result.loglike, abs=1e-7)
     for weights in posterior["posterior_weights"]:
         assert np.sum(weights) == pytest.approx(1.0)
     assert np.all(predictive.to_numpy() >= 0)
@@ -124,9 +122,7 @@ def test_posterior_random_effects_and_predictive_probabilities(fitted_panel_mode
         entity=entity[:20],
         posterior=wrapped_posterior,
     )
-    assert wrapped_predictive.to_numpy() == pytest.approx(
-        predictive.to_numpy(), abs=1e-12
-    )
+    assert wrapped_predictive.to_numpy() == pytest.approx(predictive.to_numpy(), abs=1e-12)
 
 
 def test_conditional_prediction_accepts_entity_keyed_effects(fitted_panel_model):

@@ -164,7 +164,7 @@ class GenericEstimatorBridge:
     ``fit_function`` receives ``(X, y, **kwargs)``. ``predict_function``
     receives ``(fitted_result, X, **kwargs)``. Supplying ``dependency`` makes
     availability validation lazy, which is the recommended route for
-    Biogeme, lifelines, Bambi and other model-specific ecosystems.
+    Biogeme, lifelines, Bambi and other model-specific external estimators.
     """
 
     fit_function: Callable[..., Any]
@@ -244,9 +244,7 @@ class SklearnBridge:
                 "or 'decision_function'."
             )
         if method == "auto":
-            method = (
-                "predict_proba" if hasattr(self.estimator, "predict_proba") else "predict"
-            )
+            method = "predict_proba" if hasattr(self.estimator, "predict_proba") else "predict"
         if not hasattr(self.estimator, method):
             raise TypeError(f"The estimator does not expose {method}().")
         sklearn_base = _require_dependency("sklearn.base")
@@ -328,9 +326,7 @@ class StatsmodelsBridge:
         del entity, time
 
         if self.prediction_kind not in {"probability", "value"}:
-            raise ValueError(
-                "prediction_kind must be explicitly 'probability' or 'value'."
-            )
+            raise ValueError("prediction_kind must be explicitly 'probability' or 'value'.")
         if not isinstance(self.prediction_method, str) or not self.prediction_method:
             raise ValueError("prediction_method must be a non-empty string.")
         statsmodels_api = _require_dependency("statsmodels.api")
@@ -342,9 +338,7 @@ class StatsmodelsBridge:
         )
         model = factory(y, design, **dict(self.model_options))
         if not hasattr(model, self.prediction_method):
-            raise TypeError(
-                f"The statsmodels model does not expose {self.prediction_method}()."
-            )
+            raise TypeError(f"The statsmodels model does not expose {self.prediction_method}().")
         raw_result = model.fit(**{**dict(self.fit_options), **kwargs})
         if not hasattr(raw_result, self.prediction_method):
             raise TypeError(
@@ -352,9 +346,7 @@ class StatsmodelsBridge:
             )
         diagnostics = _validated_diagnostics(raw_result, self.diagnostics)
         result_type = (
-            ProbabilityBridgedResult
-            if self.prediction_kind == "probability"
-            else BridgedResult
+            ProbabilityBridgedResult if self.prediction_kind == "probability" else BridgedResult
         )
         return result_type(
             raw_result=raw_result,

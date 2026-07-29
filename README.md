@@ -31,7 +31,7 @@ The objective is not to collect as many estimators as possible. The objective is
 the observation rule, identification assumptions, prediction target, inferential status,
 and validation evidence visible enough for replication, review, and applied use.
 
-> **Alpha warning:** the current package version is `0.1.0a3`. APIs can change before a
+> **Alpha warning:** the current package version is `0.1.0a4`. APIs can change before a
 > stable release. Validation claims are model- and benchmark-specific; they do not imply
 > universal equivalence across datasets, specifications, optimizers, covariance targets,
 > quadrature rules, or software defaults.
@@ -277,7 +277,7 @@ from limiteddepkit.small_sample import FirthBinaryLogit
 
 Python 3.10 or newer is required. Install the current alpha release from PyPI:
 
-    python -m pip install limiteddepkit==0.1.0a3
+    python -m pip install limiteddepkit==0.1.0a4
 
 For the newest development version, install from a checkout:
 
@@ -1087,13 +1087,15 @@ alignment, calibration, survival, and uncertainty contracts.
 
 Verification is a core design principle of `limiteddepkit`.
 
-Where equivalent estimands exist, maintained tests compare with established Python, R,
-and Stata implementations. Where no equivalent external estimator exists, the package
-uses exact likelihood identities, independent kernels, deterministic recovery,
-invariance checks, and explicit refusal tests.
+Where equivalent limited-dependent-variable estimands exist, maintained tests compare
+`limiteddepkit` results with aligned Python, R, and Stata reference implementations.
+Where no equivalent external estimator exists, the package uses exact likelihood
+identities, independent kernels, deterministic recovery, invariance checks, and explicit
+refusal tests.
 
-The purpose is not to label every numerical check “parity.” The purpose is to state what
-was compared, under which specification, and what remains unverified.
+The purpose is not to host a repository-wide package comparison or label every numerical
+check “parity.” The purpose is package-scoped: state which `limiteddepkit` model was
+checked, under which specification, and what remains unverified.
 
 ---
 
@@ -1122,9 +1124,10 @@ guide and [Validation strategy](docs/VALIDATION.md) for the exact claim boundary
 
 ---
 
-# Eight-Family Stata and R Certificates
+# Eight-Family Package-Aligned Stata and R Certificates
 
-The pre-expansion binary/ordinal surface has four completed external-software tracks.
+The pre-expansion binary/ordinal surface has four completed package-aligned reference
+tracks.
 
 The eight models are:
 
@@ -1180,20 +1183,20 @@ allowed claim language.
 
 ---
 
-# Promoted-Family Python/R Application Evidence
+# Promoted-Family Package-Aligned Application Evidence
 
 The stable families added after the original eight-model surface have a separate
 public-data application harness. On 15 July 2026, all 12 Python and R fits completed and
 all **120/120** registered comparisons passed their model-specific gates.
 
-The evidence comprises:
+The evidence is model-by-model rather than repository-wide. It comprises:
 
 - seven comparisons with industrial R packages;
 - three independent likelihood or adjusted-score implementations; and
 - two exact likelihood or pseudo-sample identities.
 
 These labels are deliberate: identity and independently coded likelihood checks are
-useful replication evidence, but they are not package-to-package agreement. The
+useful replication evidence, but they are not package-to-package comparison. The
 applications use empirical LBW, infant-mortality, labor-supply, cancer-duration,
 TVSFPORS, and NLSWORK observations. The interval-regression check instead uses the
 official fictional `womenwage2` software fixture because it exercises native open
@@ -1212,7 +1215,7 @@ The promoted Python/R and Stata application tracks were freshly rerun for
 results, respectively, with the ordinary-Gamma Stata limitation unchanged.
 
 See the [promoted-family application harness](validation/promoted/README.md) and
-[cross-software evidence index](validation/PARITY_EVIDENCE.md) for the model map,
+[package validation evidence index](validation/PARITY_EVIDENCE.md) for the model map,
 provenance, commands, tolerances, recorded hashes, and allowed claim language.
 
 ---
@@ -1300,10 +1303,11 @@ The following were deliberately kept outside the installed package:
 - ordinary uncensored quantile regression; and
 - a generic generalized additive model.
 
-The historical 2SLS and mixture sources are retained under `_out_of_scope/` for possible
-migration to causal/IV and regime-model packages. Future nonlinear basis support should
-serve an in-scope outcome family rather than create a generic `GAM` label without a
-limited-response estimand.
+The historical 2SLS migration to `causekit.IV2SLS` is complete, and its obsolete source
+snapshot has been removed rather than duplicated. The mixture source remains under
+`_out_of_scope/` for possible migration to a regime-model package. Future nonlinear basis
+support should serve an in-scope outcome family rather than create a generic `GAM` label
+without a limited-response estimand.
 
 See [Package scope](docs/PACKAGE_SCOPE.md) for the complete keep/extract rationale.
 
@@ -1354,9 +1358,10 @@ Workflow and evidence guides:
 - [Probability-aware validation and ML workflows](docs/ML_WORKFLOWS.md)
 - [Validation strategy](docs/VALIDATION.md)
 - [Experimental model status](docs/EXPERIMENTAL_MODELS.md)
-- [Ecosystem compatibility](docs/ECOSYSTEM_COMPATIBILITY.md)
+- [Package interoperability](docs/PACKAGE_INTEROPERABILITY.md)
+- [Kaggle and Google Colab usage](docs/CLOUD_NOTEBOOKS.md)
 - [Dynamic ordinal numerical validation](docs/DYNAMIC_ORDINAL_VALIDATION.md)
-- [Cross-software evidence index](validation/PARITY_EVIDENCE.md)
+- [Package validation evidence index](validation/PARITY_EVIDENCE.md)
 - [Stata parity harness](validation/stata/README.md)
 - [R parity harness](validation/r/README.md)
 - [Promoted-family application harness](validation/promoted/README.md)
@@ -1382,7 +1387,7 @@ Akanbi, Oluwajuwon Mayomi.
 
 limiteddepkit: Limited-dependent-variable models for Python.
 
-Version 0.1.0a3, 2026.
+Version 0.1.0a4, 2026.
 ```
 
 No DOI or archival identifier is asserted before one is assigned. Add the permanent
