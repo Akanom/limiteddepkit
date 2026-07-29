@@ -7,6 +7,29 @@ pre-release phase.
 
 ## [Unreleased]
 
+## [0.1.0a4] - 2026-07-29
+
+### Added
+
+- Added opt-in, exact-parity `engine="accelerated"` execution for grouped
+  `ConditionalLogit` and static `RandomEffectsOrderedLogit`/
+  `RandomEffectsOrderedProbit`. The new paths batch stable SciPy log-sum-exp
+  reductions without changing group, quadrature, likelihood-accumulation,
+  optimizer, convergence, covariance, or result contracts.
+- Extended the controlled benchmark to compare all accelerated estimators,
+  cover random-effects Ordered Probit, and retain `--poisson-engine` as a
+  backward-compatible alias for the general `--engine` selector.
+- Added Python 3.14 to the tested CI matrix and published classifiers after the
+  full suite and both real-data application harnesses passed on Python 3.14.6.
+- Refreshed the 0.1.0a4 real-data references. Fresh R 4.5.1 runs passed 110/110
+  legacy and 120/120 promoted checks; the current Python references passed
+  82/82 and 140/140 comparisons against the preserved manual Stata 17 exports.
+- Added a hash-pinned Windows release-requirements overlay for `build`'s
+  platform-conditional `colorama` dependency while retaining the Linux lock
+  used by the authoritative release workflow.
+- Added an installed-wheel release smoke script and made it a mandatory
+  pre-publish gate for Binary Logit plus every controlled accelerated engine.
+
 ## [0.1.0a3] - 2026-07-28
 
 ### Added

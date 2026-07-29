@@ -13,6 +13,7 @@ from scipy.optimize import minimize
 from scipy.special import log_expit, log_ndtr, logsumexp, ndtr
 from scipy.stats import norm
 
+from ._performance import normalize_performance_engine, rowwise_logsumexp
 from .ordinal import (
     OrderedLogit,
     OrderedProbit,
@@ -91,12 +92,8 @@ def _conditional_probabilities(
     link: str,
 ) -> np.ndarray:
     linear_predictor = values @ beta + random_effects
-    cumulative = _link_cdf(
-        thresholds[None, :] - linear_predictor[:, None], link
-    )
-    bounds = np.column_stack(
-        [np.zeros(values.shape[0]), cumulative, np.ones(values.shape[0])]
-    )
+    cumulative = _link_cdf(thresholds[None, :] - linear_predictor[:, None], link)
+    bounds = np.column_stack([np.zeros(values.shape[0]), cumulative, np.ones(values.shape[0])])
     return np.diff(bounds, axis=1)
 
 
@@ -151,6 +148,7 @@ class RandomEffectsOrderedResult:
     quadrature_points: int
     optimizer_result: Any
     link: str = "logit"
+    engine: str = "reference"
 
     @property
     def all_params(self) -> pd.Series:
@@ -250,12 +248,8 @@ class RandomEffectsOrderedResult:
                     self.link,
                 )
         else:
-            effects = _resolved_random_effects(
-                random_effects, nobs=values.shape[0], entity=entity
-            )
-            probabilities = _conditional_probabilities(
-                values, beta, thresholds, effects, self.link
-            )
+            effects = _resolved_random_effects(random_effects, nobs=values.shape[0], entity=entity)
+            probabilities = _conditional_probabilities(values, beta, thresholds, effects, self.link)
         return pd.DataFrame(probabilities, columns=self.categories)
 
     def predict(
@@ -312,9 +306,7 @@ class RandomEffectsOrderedResult:
             log_marginal = float(logsumexp(log_posterior))
             posterior_weights = np.exp(log_posterior - log_marginal)
             posterior_mean = float(posterior_weights @ node_effects)
-            posterior_variance = float(
-                posterior_weights @ (node_effects - posterior_mean) ** 2
-            )
+            posterior_variance = float(posterior_weights @ (node_effects - posterior_mean) ** 2)
             rows.append(
                 {
                     "entity": label,
@@ -366,17 +358,11 @@ class RandomEffectsOrderedResult:
         thresholds = self.thresholds.to_numpy(dtype=float)
         for label in pd.unique(entities):
             selected = np.flatnonzero(entities == label)
-            posterior_weights = np.asarray(
-                posterior.at[label, "posterior_weights"], dtype=float
-            )
+            posterior_weights = np.asarray(posterior.at[label, "posterior_weights"], dtype=float)
             if posterior_weights.shape != node_effects.shape:
                 raise ValueError("posterior node weights are incompatible with this result.")
-            group_probabilities = np.zeros(
-                (len(selected), len(self.categories)), dtype=float
-            )
-            for weight, random_intercept in zip(
-                posterior_weights, node_effects, strict=True
-            ):
+            group_probabilities = np.zeros((len(selected), len(self.categories)), dtype=float)
+            for weight, random_intercept in zip(posterior_weights, node_effects, strict=True):
                 group_probabilities += weight * _conditional_probabilities(
                     values[selected],
                     beta,
@@ -420,7 +406,15 @@ class _RandomEffectsOrdered:
         quadrature_points: int = 12,
         maxiter: int = 1_000,
         tolerance: float = 1e-8,
+        engine: str = "reference",
     ) -> RandomEffectsOrderedResult:
+        """Estimate a random-intercept ordered model by non-adaptive GHQ.
+
+        ``engine="reference"`` remains the default. ``"accelerated"`` batches
+        entity marginal-likelihood reductions through the same SciPy stable
+        log-sum-exp implementation without changing quadrature or group order.
+        """
+        engine = normalize_performance_engine(engine)
         values, feature_names = _as_2d_array(X)
         encoded, categories = _ordered_categories(y, category_order=category_order)
         entities = np.asarray(entity)
@@ -461,9 +455,7 @@ class _RandomEffectsOrdered:
         n_features = values.shape[1]
         n_thresholds = categories.size - 1
         pooled_thresholds = pooled.thresholds.to_numpy(dtype=float)
-        raw_thresholds = np.r_[
-            pooled_thresholds[0], np.log(np.diff(pooled_thresholds))
-        ]
+        raw_thresholds = np.r_[pooled_thresholds[0], np.log(np.diff(pooled_thresholds))]
         initial = np.r_[pooled.params.to_numpy(dtype=float), raw_thresholds, np.log(0.5)]
         nodes, weights = hermgauss(quadrature_points)
         log_weights = np.log(weights) - 0.5 * np.log(np.pi)
@@ -489,9 +481,19 @@ class _RandomEffectsOrdered:
                     self._link,
                 )
             loglike = 0.0
-            for rows in group_rows:
-                conditional_group_loglike = node_log_probabilities[:, rows].sum(axis=1)
-                loglike += logsumexp(log_weights + conditional_group_loglike)
+            if engine == "accelerated":
+                conditional_group_loglikes = np.empty((len(group_rows), len(nodes)), dtype=float)
+                for group, rows in enumerate(group_rows):
+                    conditional_group_loglikes[group] = node_log_probabilities[:, rows].sum(axis=1)
+                marginal_loglikes = rowwise_logsumexp(
+                    log_weights[None, :] + conditional_group_loglikes
+                )
+                for marginal_loglike in marginal_loglikes:
+                    loglike += marginal_loglike
+            else:
+                for rows in group_rows:
+                    conditional_group_loglike = node_log_probabilities[:, rows].sum(axis=1)
+                    loglike += logsumexp(log_weights + conditional_group_loglike)
             return float(-loglike)
 
         fitted = minimize(
@@ -522,13 +524,10 @@ class _RandomEffectsOrdered:
             and scaled_score_norm <= stationarity_limit
         )
         threshold_names = [
-            f"{categories[index]} | {categories[index + 1]}"
-            for index in range(n_thresholds)
+            f"{categories[index]} | {categories[index + 1]}" for index in range(n_thresholds)
         ]
         parameter_names = (
-            feature_names
-            + [f"threshold: {name}" for name in threshold_names]
-            + ["sigma_entity"]
+            feature_names + [f"threshold: {name}" for name in threshold_names] + ["sigma_entity"]
         )
         information = _numerical_hessian(negative_loglike, fitted.x)
         information = (information + information.T) / 2.0
@@ -601,6 +600,7 @@ class _RandomEffectsOrdered:
             quadrature_points=quadrature_points,
             optimizer_result=fitted,
             link=self._link,
+            engine=engine,
         )
 
 

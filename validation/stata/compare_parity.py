@@ -144,7 +144,7 @@ REQUIRED_PYTHON_REFERENCES = {
     "python/predictions.csv",
 }
 EXPECTED_MANIFEST_CONTROLS = {
-    "limiteddepkit_version": "0.1.0a3",
+    "limiteddepkit_version": "0.1.0a4",
     "prediction_rows_per_model": 25,
     "quadrature_method": "ghermite",
     "ordered_optimizer_maxiter": 5_000,
