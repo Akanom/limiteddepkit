@@ -36,10 +36,14 @@ from limiteddepkit import (
     OrderedProbit,
     PoissonRegressor,
     RandomEffectsOrderedLogit,
+    RandomEffectsOrderedProbit,
     Tobit,
     TruncatedRegression,
     marginal_effects,
     summary_frame,
+)
+from limiteddepkit import (
+    __version__ as limiteddepkit_version,
 )
 from limiteddepkit.experimental import (
     ConditionalLogit,
@@ -73,6 +77,7 @@ QUICK_CASES = (
     BenchmarkCase("sample_selection", "sample_selection", 1_000),
     BenchmarkCase("conditional_logit", "conditional_logit", 600),
     BenchmarkCase("random_effects_ordered_logit", "random_effects_ordered_logit", 300),
+    BenchmarkCase("random_effects_ordered_probit", "random_effects_ordered_probit", 300),
 )
 FULL_CASES = (
     BenchmarkCase("binary_logit", "binary_logit", 40_000),
@@ -90,7 +95,15 @@ FULL_CASES = (
     BenchmarkCase("sample_selection", "sample_selection", 8_000),
     BenchmarkCase("conditional_logit", "conditional_logit", 4_000),
     BenchmarkCase("random_effects_ordered_logit", "random_effects_ordered_logit", 1_000),
+    BenchmarkCase("random_effects_ordered_probit", "random_effects_ordered_probit", 1_000),
 )
+
+ACCELERATED_ESTIMATORS = {
+    "poisson",
+    "conditional_logit",
+    "random_effects_ordered_logit",
+    "random_effects_ordered_probit",
+}
 
 
 def _problem(
@@ -171,7 +184,10 @@ def _problem(
         fit_kwargs = {"groups": groups, "alternatives": alternatives}
         prediction_kwargs = {"groups": groups}
         return ConditionalLogit(n_alts=n_alternatives), X, y, fit_kwargs, prediction_kwargs
-    if case.estimator == "random_effects_ordered_logit":
+    if case.estimator in {
+        "random_effects_ordered_logit",
+        "random_effects_ordered_probit",
+    }:
         n_periods = 5
         n_entities = max(case.nobs // n_periods, 8)
         entity = np.repeat(np.arange(n_entities), n_periods)
@@ -183,7 +199,12 @@ def _problem(
             + rng.logistic(size=len(entity))
         )
         y = np.digitize(latent, bins=np.array([-0.6, 0.7]))
-        return RandomEffectsOrderedLogit(), X, y, {"entity": entity, "quadrature_points": 8}, {}
+        estimator = (
+            RandomEffectsOrderedLogit()
+            if case.estimator == "random_effects_ordered_logit"
+            else RandomEffectsOrderedProbit()
+        )
+        return estimator, X, y, {"entity": entity, "quadrature_points": 8}, {}
     X = pd.DataFrame(
         {"const": 1.0, "x1": rng.normal(size=case.nobs), "x2": rng.normal(size=case.nobs)}
     )
@@ -223,7 +244,15 @@ def _fit(
 ) -> Any:
     kwargs = dict(fit_kwargs)
     third = kwargs.pop("_third", None)
-    if isinstance(estimator, PoissonRegressor):
+    if isinstance(
+        estimator,
+        (
+            PoissonRegressor,
+            ConditionalLogit,
+            RandomEffectsOrderedLogit,
+            RandomEffectsOrderedProbit,
+        ),
+    ):
         kwargs["engine"] = engine
     if third is not None:
         return estimator.fit(X, y, third, **kwargs)
@@ -299,7 +328,7 @@ def _measure(
     parameters = getattr(result, "all_params", getattr(result, "params", pd.Series(dtype=float)))
     return (
         {
-            "engine": engine if case.estimator == "poisson" else "native",
+            "engine": engine if case.estimator in ACCELERATED_ESTIMATORS else "native",
             "cold_fit_seconds": cold_seconds,
             "warm_fit_seconds": warm_seconds,
             "warm_fit_median_seconds": statistics.median(warm_seconds),
@@ -317,21 +346,59 @@ def _measure(
     )
 
 
-def _exact_poisson_parity(left: Any, right: Any) -> bool:
-    arrays_equal = all(
-        np.array_equal(np.asarray(a), np.asarray(b), equal_nan=True)
-        for a, b in (
-            (left.params, right.params),
-            (left.covariance, right.covariance),
-            (left.standard_errors, right.standard_errors),
-            (left.fitted_values, right.fitted_values),
-        )
+def _exact_engine_parity(left: Any, right: Any) -> bool:
+    array_names = (
+        "all_params",
+        "params",
+        "covariance",
+        "standard_errors",
+        "zstats",
+        "pvalues",
+        "fitted_values",
     )
-    scalars_equal = all(
-        getattr(left, name) == getattr(right, name)
-        for name in ("loglike", "score_norm", "scaled_score_norm", "pearson_chi2", "deviance")
+    for name in array_names:
+        if (
+            hasattr(left, name)
+            and hasattr(right, name)
+            and not np.array_equal(
+                np.asarray(getattr(left, name)),
+                np.asarray(getattr(right, name)),
+                equal_nan=True,
+            )
+        ):
+            return False
+    scalar_names = (
+        "loglike",
+        "score_norm",
+        "scaled_score_norm",
+        "pearson_chi2",
+        "deviance",
+        "converged",
+        "inference_valid",
+        "information_rank",
     )
-    return arrays_equal and scalars_equal
+    for name in scalar_names:
+        if (
+            hasattr(left, name)
+            and hasattr(right, name)
+            and getattr(left, name) != getattr(right, name)
+        ):
+            return False
+    left_optimizer = getattr(left, "optimizer_result", None)
+    right_optimizer = getattr(right, "optimizer_result", None)
+    if left_optimizer is not None and right_optimizer is not None:
+        for name in ("x", "fun", "jac", "nit", "nfev", "njev", "status", "success"):
+            if (
+                hasattr(left_optimizer, name)
+                and hasattr(right_optimizer, name)
+                and not np.array_equal(
+                    np.asarray(getattr(left_optimizer, name)),
+                    np.asarray(getattr(right_optimizer, name)),
+                    equal_nan=True,
+                )
+            ):
+                return False
+    return True
 
 
 def _profile(function: Callable[[], Any], limit: int) -> str:
@@ -356,7 +423,7 @@ def _environment() -> dict[str, Any]:
         "python": sys.version,
         "platform": platform.platform(),
         "processor": platform.processor(),
-        "limiteddepkit": importlib.metadata.version("limiteddepkit"),
+        "limiteddepkit": limiteddepkit_version,
         "numpy": np.__version__,
         "pandas": pd.__version__,
         "scipy": scipy.__version__,
@@ -374,7 +441,12 @@ def main() -> None:
     parser.add_argument("--suite", choices=("quick", "full"), default="quick")
     parser.add_argument("--case", help="Run one named case from the selected suite.")
     parser.add_argument(
-        "--poisson-engine", choices=("reference", "accelerated", "both"), default="both"
+        "--engine",
+        "--poisson-engine",
+        dest="engine",
+        choices=("reference", "accelerated", "both"),
+        default="both",
+        help="Execution engine for estimators with a controlled accelerated path.",
     )
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--profile-case", help="Include a cumulative cProfile fit report.")
@@ -395,12 +467,8 @@ def main() -> None:
     for case in cases:
         estimator, X, y, fit_kwargs, prediction_kwargs = _problem(case)
         engines = ["reference"]
-        if case.estimator == "poisson":
-            engines = (
-                [args.poisson_engine]
-                if args.poisson_engine != "both"
-                else ["reference", "accelerated"]
-            )
+        if case.estimator in ACCELERATED_ESTIMATORS:
+            engines = [args.engine] if args.engine != "both" else ["reference", "accelerated"]
         measurements: list[dict[str, Any]] = []
         results: dict[str, Any] = {}
         for engine in engines:
@@ -420,8 +488,8 @@ def main() -> None:
                 profile_fit = partial(_fit, estimator, X, y, fit_kwargs, engine)
                 profiles[f"{case.name}:{engine}"] = _profile(profile_fit, args.profile_limit)
         exact_parity = None
-        if case.estimator == "poisson" and args.poisson_engine == "both":
-            exact_parity = _exact_poisson_parity(results["reference"], results["accelerated"])
+        if case.estimator in ACCELERATED_ESTIMATORS and args.engine == "both":
+            exact_parity = _exact_engine_parity(results["reference"], results["accelerated"])
         records.append(
             {
                 "case": asdict(case),

@@ -23,3 +23,14 @@ The Linux CI/release sets can be reproduced from the repository root with:
 ```powershell
 docker run --rm -v "${PWD}:/workspace" -w /workspace python:3.13-slim sh -c 'python -m pip install "pip-tools>=7.5,<8" && pip-compile --generate-hashes --resolver=backtracking --strip-extras --no-emit-index-url --no-emit-trusted-host requirements/test.in -o requirements/test.txt && pip-compile --generate-hashes --resolver=backtracking --strip-extras --no-emit-index-url --no-emit-trusted-host requirements/release.in -o requirements/release.txt'
 ```
+
+On Windows, install `requirements/release-windows.txt`. It includes the
+Linux-generated release lock and adds the hash-pinned `colorama` and
+`pywin32-ctypes` dependencies selected only on Windows by `build` and `keyring`:
+
+```powershell
+python -m pip install --require-hashes -r requirements/release-windows.txt
+```
+
+The overlay hashes must be verified against the corresponding PyPI release
+metadata whenever `build` changes.

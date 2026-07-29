@@ -263,6 +263,13 @@ checks in each track; pinned R 4.5.1 again passed 110/110 checks in each track.
 The generated evidence remains in ignored work directories and must be archived
 with the exact release commit when used to support a release or publication.
 
+For the `0.1.0a4` release candidate, the public-data Python references were
+freshly prepared under Python 3.14.6 on 29 July 2026 and R 4.5.1 was freshly
+rerun. The R application passed 110/110 checks. The current references also
+passed 82/82 checks against the preserved manual Stata 17 exports. Because the
+Stata command was not rerun after this release's opt-in engine change, the
+certificate supports a fresh comparison rather than a new Stata execution.
+
 Newer stable promotions—including Firth Binary Logit, Gaussian censoring, Poisson/NB2,
 the duration family, Random-effects Ordered Probit, and BUC Fixed-effects Ordered
 Logit—have the model-specific Python/reference evidence documented above and in their
@@ -313,6 +320,12 @@ Both promoted-family tracks were also freshly rerun for `0.1.0a3` on 28 July
 Stata application passed 140/140 required checks, with the same predeclared
 ordinary-Gamma non-applicability recorded separately rather than counted as a
 pass.
+
+For `0.1.0a4`, all 12 Python references and the R 4.5.1 application were
+freshly run on 29 July 2026 and passed 120/120 checks. The current Python
+references passed 140/140 required comparisons against the preserved manual
+Stata 17 exports, with the same ordinary-Gamma skip. This is recorded as a new
+comparison, not a new Stata execution.
 
 The completed R evidence includes seven industrial-package fits, three independent
 likelihood or adjusted-score implementations, and two exact likelihood or pseudo-sample

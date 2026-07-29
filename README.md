@@ -31,15 +31,16 @@ The objective is not to collect as many estimators as possible. The objective is
 the observation rule, identification assumptions, prediction target, inferential status,
 and validation evidence visible enough for replication, review, and applied use.
 
-> **Alpha warning:** the current package version is `0.1.0a3`. APIs can change before a
+> **Alpha warning:** the current package version is `0.1.0a4`. APIs can change before a
 > stable release. Validation claims are model- and benchmark-specific; they do not imply
 > universal equivalence across datasets, specifications, optimizers, covariance targets,
 > quadrature rules, or software defaults.
 
 ## Controlled performance mode
 
-Poisson keeps its validated execution path as the default. Large or repeated
-fits can opt into one-time active-array and likelihood-constant preparation:
+Accelerated estimators keep their validated execution path as the default.
+Large or repeated Poisson fits can opt into one-time active-array and
+likelihood-constant preparation:
 
 ```python
 from limiteddepkit import PoissonRegressor
@@ -48,6 +49,30 @@ result = PoissonRegressor().fit(
     X,
     y,
     exposure=person_time,
+    engine="accelerated",
+)
+```
+
+Grouped Conditional Logit and static random-effects Ordered Logit/Probit can
+batch equal-width stable log-sum-exp reductions while retaining group,
+quadrature, likelihood-accumulation, optimizer, and inference order:
+
+```python
+from limiteddepkit import RandomEffectsOrderedLogit
+from limiteddepkit.experimental import ConditionalLogit
+
+choice_result = ConditionalLogit(n_alts=4).fit(
+    X_long,
+    chosen,
+    groups=choice_set,
+    engine="accelerated",
+)
+
+panel_result = RandomEffectsOrderedLogit().fit(
+    X_panel,
+    y_panel,
+    entity=entity_id,
+    quadrature_points=12,
     engine="accelerated",
 )
 ```
@@ -277,7 +302,7 @@ from limiteddepkit.small_sample import FirthBinaryLogit
 
 Python 3.10 or newer is required. Install the current alpha release from PyPI:
 
-    python -m pip install limiteddepkit==0.1.0a3
+    python -m pip install limiteddepkit==0.1.0a4
 
 For the newest development version, install from a checkout:
 
@@ -655,6 +680,7 @@ re_logit = RandomEffectsOrderedLogit().fit(
     entity=entity_id,
     category_order=order,
     quadrature_points=12,
+    engine="accelerated",
 )
 
 re_probit = RandomEffectsOrderedProbit().fit(
@@ -663,6 +689,7 @@ re_probit = RandomEffectsOrderedProbit().fit(
     entity=entity_id,
     category_order=order,
     quadrature_points=12,
+    engine="accelerated",
 )
 
 population_average = re_logit.predict_proba(X_panel_new)
@@ -1154,6 +1181,13 @@ rerun on 28 July 2026. Stata 17 again passed 82/82 checks in each track and
 pinned R 4.5.1 again passed 110/110 checks in each track. This is a repeat of
 the same benchmark-specific contracts, not a broader equivalence claim.
 
+For `0.1.0a4`, the public-data Python references were freshly prepared on
+29 July 2026 with Python 3.14.6 and the R 4.5.1 application was rerun. R passed
+110/110 checks. The current references were also re-compared with the preserved
+manual Stata 17 exports and passed 82/82 checks. The Stata command itself was not
+rerun after the opt-in engine change, so this is recorded as a fresh comparison,
+not a new Stata execution.
+
 Observed maximum absolute differences across the completed reports were:
 
 | Track | Implementation | Estimate | Standard error | Covariance | Log likelihood | Probability |
@@ -1210,6 +1244,12 @@ estimands, or software versions.
 The promoted Python/R and Stata application tracks were freshly rerun for
 `0.1.0a3` on 28 July 2026 and reproduced the 120/120 and 140/140 required-check
 results, respectively, with the ordinary-Gamma Stata limitation unchanged.
+
+For `0.1.0a4`, all 12 Python references and the R 4.5.1 application were freshly
+run on 29 July 2026 and passed 120/120 checks. The current Python references
+also passed 140/140 required comparisons against the preserved manual Stata 17
+exports, with the same predeclared ordinary-Gamma skip. As above, this is a new
+comparison of current Python evidence, not a second Stata execution.
 
 See the [promoted-family application harness](validation/promoted/README.md) and
 [cross-software evidence index](validation/PARITY_EVIDENCE.md) for the model map,
@@ -1300,10 +1340,10 @@ The following were deliberately kept outside the installed package:
 - ordinary uncensored quantile regression; and
 - a generic generalized additive model.
 
-The historical 2SLS and mixture sources are retained under `_out_of_scope/` for possible
-migration to causal/IV and regime-model packages. Future nonlinear basis support should
-serve an in-scope outcome family rather than create a generic `GAM` label without a
-limited-response estimand.
+The historical 2SLS and mixture sources are retained under `_out_of_scope/` as archival
+snapshots only; their maintained implementations belong in separate causal/IV and
+regime-model packages. Future nonlinear basis support should serve an in-scope outcome
+family rather than create a generic `GAM` label without a limited-response estimand.
 
 See [Package scope](docs/PACKAGE_SCOPE.md) for the complete keep/extract rationale.
 
@@ -1382,7 +1422,7 @@ Akanbi, Oluwajuwon Mayomi.
 
 limiteddepkit: Limited-dependent-variable models for Python.
 
-Version 0.1.0a3, 2026.
+Version 0.1.0a4, 2026.
 ```
 
 No DOI or archival identifier is asserted before one is assigned. Add the permanent

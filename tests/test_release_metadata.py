@@ -4,7 +4,7 @@ from pathlib import Path
 import limiteddepkit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = "0.1.0a3"
+RELEASE_VERSION = "0.1.0a4"
 
 
 def _read(relative_path: str) -> str:
@@ -36,7 +36,7 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "Development Status :: 3 - Alpha" in pyproject
     assert "Development Status :: 2 - Pre-Alpha" not in pyproject
     assert "currently released" not in citation.lower()
-    assert f"## [{RELEASE_VERSION}] - 2026-07-28" in changelog
+    assert f"## [{RELEASE_VERSION}] - 2026-07-29" in changelog
     reusable_build = re.search(
         r"uses: Akanom/python-package-governance/\.github/workflows/"
         r"reusable-build\.yml@([0-9a-f]{40})",
@@ -49,6 +49,7 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "prune _out_of_scope" in manifest
     assert "recursive-include benchmarks *.py" in manifest
     assert "recursive-include examples *.py" in manifest
+    assert "recursive-include scripts *.py" in manifest
     assert "recursive-include validation/stata *.do *.md *.ps1 *.py" in manifest
     assert "prune validation/stata/work" in manifest
     assert "recursive-include validation/r *.R *.md *.ps1 *.py" in manifest
@@ -56,6 +57,8 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "recursive-include validation/promoted *.R *.do *.md *.py" in manifest
     assert "prune validation/promoted/work" in manifest
     assert "include validation/PARITY_EVIDENCE.md" in manifest
+    assert "Smoke test the built wheel" in publish_workflow
+    assert "scripts/release_smoke.py" in publish_workflow
 
 
 def test_documentation_records_completed_benchmark_specific_parity():

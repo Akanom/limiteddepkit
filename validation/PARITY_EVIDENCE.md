@@ -144,3 +144,36 @@ Promoted-suite manifest SHA-256:
 The complete reproduction and evidence contract is documented in the
 [promoted-family guide](promoted/README.md). Generated data and evidence remain
 ignored by Git and must be archived separately with the repository revision.
+
+## 0.1.0a4 real-data revalidation
+
+On 29 July 2026, the legacy and promoted public-data Python references were
+freshly prepared for `limiteddepkit` 0.1.0a4 under Python 3.14.6, NumPy 2.4.6,
+pandas 3.0.3, and SciPy 1.17.1. R 4.5.1 was freshly rerun: the legacy suite
+passed 110/110 checks and the promoted suite passed 120/120 checks.
+
+The current Python references were also compared with the preserved manual
+Stata 17 exports from the immediately preceding release validation. The legacy
+comparison passed 82/82 checks and the promoted comparison passed 140/140
+required checks with the predeclared ordinary-Gamma skip. The Stata do-files
+were not rerun after the opt-in engine change, so these records establish a
+fresh comparison against current Python evidence rather than a new Stata
+execution. The unchanged promoted R and Stata report/summary hashes provide
+additional evidence that the default numerical contracts did not move.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Legacy manifest | `eac2ee7dd446a7bec860f77bc231876d2ac7a603971789ef27dc1bae6b887c9c` |
+| Legacy Stata comparison report | `32781884cc1727922aea8a5074b1ff5b5e816f74b4703065d176b4a2e22d4d23` |
+| Legacy Stata comparison summary | `45a8726112e2a77bf28644c44b5571c5715eeea714ac53f7a6449b0615535870` |
+| Legacy Stata parity certificate | `f018a8b96e8d16625a471911df6dbc73ffe0ad15961f6f5780670b5b66e0e046` |
+| Legacy R comparison report | `daeaab12d2ad19dc4845532068c1496f6c10e9e4af3479f4b4d38670b53f6065` |
+| Legacy R comparison summary | `305ccf907fb0fe5cb914af24a078d6e0fb65371ae55be7cc101f1d4aeece61b5` |
+| Legacy R parity certificate | `6021d06ef1c3594e536dd1fede0c9bf8edace39612ea1d96d98f8acb95826328` |
+| Promoted manifest | `e00201073b25d01e1372722d854ef45cb1c7fc7dbb7fb2a9ca8d985d8314a086` |
+| Promoted R comparison report | `35178a26fa69a222100b829a0c0a99a45ff975386968f9c591e7767575e49833` |
+| Promoted R comparison summary | `a8501fd02dad1b64689436858c92e3134bd4b9f0f74f4020e4f44ea5098083cd` |
+| Promoted R parity certificate | `3784ab98f5f179bd6a57e3ea563330c28aa0f440885e9fa7a7058d21d94cdfc1` |
+| Promoted Stata comparison report | `483175035e64b96ebae834f2c2a69415ce4cd65b733b40ebe9f72f5cdd23a0e0` |
+| Promoted Stata comparison summary | `c49d7a48d52cf91815e2decfe9624d0c4e538e166b1ee16851096ee749d32fd0` |
+| Promoted Stata parity certificate | `f9b9a33496cac37c22c8ff1b99cb228506f54646ae9a98ea1ef6b6d969eeb9a6` |

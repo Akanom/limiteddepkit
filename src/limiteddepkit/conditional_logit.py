@@ -11,7 +11,38 @@ from scipy.optimize import minimize
 from scipy.special import logsumexp
 from scipy.stats import norm
 
+from ._performance import normalize_performance_engine, rowwise_logsumexp
 from .ordinal import _as_2d_array
+
+GroupLogsumexpBatch = tuple[np.ndarray, np.ndarray]
+
+
+def _prepare_group_logsumexp_batches(
+    group_indices: list[np.ndarray],
+) -> tuple[GroupLogsumexpBatch, ...]:
+    """Group choice-set indices by width for stable row-wise reductions."""
+    positions_by_size: dict[int, list[int]] = {}
+    for position, index in enumerate(group_indices):
+        positions_by_size.setdefault(len(index), []).append(position)
+    return tuple(
+        (
+            np.asarray(positions, dtype=np.int64),
+            np.vstack([group_indices[position] for position in positions]),
+        )
+        for positions in positions_by_size.values()
+    )
+
+
+def _batched_group_logsumexp(
+    utilities: np.ndarray,
+    batches: tuple[GroupLogsumexpBatch, ...],
+    n_groups: int,
+) -> np.ndarray:
+    """Return one stable denominator per choice set without reordering sets."""
+    denominators = np.empty(n_groups, dtype=float)
+    for positions, row_indices in batches:
+        denominators[positions] = rowwise_logsumexp(utilities[row_indices])
+    return denominators
 
 
 def _one_dimensional(values: Any, name: str, n_rows: int) -> np.ndarray:
@@ -102,6 +133,7 @@ class ConditionalLogitResult:
     information_rank: int
     inference_valid: bool
     optimizer_result: Any
+    engine: str = "reference"
 
     @property
     def all_params(self) -> pd.Series:
@@ -171,14 +203,18 @@ class ConditionalLogitResult:
         alternative_labels = _alternative_values(alternatives, len(design), group_indices)
         return design, row_index, group_labels, group_indices, alternative_labels
 
-    def predict_proba(
-        self, X: Any, *, groups: Any | None = None
-    ) -> pd.Series:
+    def predict_proba(self, X: Any, *, groups: Any | None = None) -> pd.Series:
         design, row_index, _, group_indices, _ = self._prediction_inputs(X, groups, None)
         utilities = design @ self.params.to_numpy(dtype=float)
         probabilities = np.empty(len(design), dtype=float)
-        for index in group_indices:
-            probabilities[index] = np.exp(utilities[index] - logsumexp(utilities[index]))
+        if self.engine == "accelerated":
+            batches = _prepare_group_logsumexp_batches(group_indices)
+            denominators = _batched_group_logsumexp(utilities, batches, len(group_indices))
+            for group, index in enumerate(group_indices):
+                probabilities[index] = np.exp(utilities[index] - denominators[group])
+        else:
+            for index in group_indices:
+                probabilities[index] = np.exp(utilities[index] - logsumexp(utilities[index]))
         return pd.Series(probabilities, index=row_index, name="probability")
 
     def predict(
@@ -221,9 +257,17 @@ class ConditionalLogit:
         groups: Any | None = None,
         alternatives: Any | None = None,
         maxiter: int = 300,
+        engine: str = "reference",
     ) -> ConditionalLogitResult:
+        """Estimate the grouped conditional likelihood.
+
+        ``engine="reference"`` remains the default. ``"accelerated"`` batches
+        equal-width choice-set denominators through the same SciPy log-sum-exp
+        implementation while retaining group and accumulation order.
+        """
         if isinstance(maxiter, bool) or not isinstance(maxiter, int) or maxiter <= 0:
             raise ValueError("maxiter must be a positive integer.")
+        engine = normalize_performance_engine(engine)
         design, feature_names = _as_2d_array(X)
         if len(set(feature_names)) != len(feature_names):
             raise ValueError("X must contain unique feature names.")
@@ -248,14 +292,37 @@ class ConditionalLogit:
                 "or other within-set invariant/collinear regressors."
             )
 
+        group_batches = (
+            _prepare_group_logsumexp_batches(group_indices) if engine == "accelerated" else ()
+        )
+        chosen_positions = (
+            np.asarray(
+                [int(np.flatnonzero(choices[index])[0]) for index in group_indices],
+                dtype=np.int64,
+            )
+            if engine == "accelerated"
+            else None
+        )
+
         def objective_and_gradient(parameters: np.ndarray) -> tuple[float, np.ndarray]:
             utilities = design @ parameters
             negative_loglike = 0.0
             gradient = np.zeros(design.shape[1], dtype=float)
-            for index in group_indices:
+            denominators = (
+                _batched_group_logsumexp(utilities, group_batches, len(group_indices))
+                if engine == "accelerated"
+                else None
+            )
+            for group, index in enumerate(group_indices):
                 group_utilities = utilities[index]
-                log_denominator = logsumexp(group_utilities)
-                chosen = int(np.flatnonzero(choices[index])[0])
+                log_denominator = (
+                    denominators[group] if denominators is not None else logsumexp(group_utilities)
+                )
+                chosen = (
+                    chosen_positions[group]
+                    if chosen_positions is not None
+                    else int(np.flatnonzero(choices[index])[0])
+                )
                 negative_loglike += log_denominator - group_utilities[chosen]
                 probabilities = np.exp(group_utilities - log_denominator)
                 residuals = probabilities - choices[index]
@@ -273,11 +340,17 @@ class ConditionalLogit:
         parameters = np.asarray(optimizer_result.x, dtype=float)
         utilities = design @ parameters
         information = np.zeros((design.shape[1], design.shape[1]), dtype=float)
-        for index in group_indices:
-            probabilities = np.exp(utilities[index] - logsumexp(utilities[index]))
-            probability_covariance = np.diag(probabilities) - np.outer(
-                probabilities, probabilities
+        denominators = (
+            _batched_group_logsumexp(utilities, group_batches, len(group_indices))
+            if engine == "accelerated"
+            else None
+        )
+        for group, index in enumerate(group_indices):
+            log_denominator = (
+                denominators[group] if denominators is not None else logsumexp(utilities[index])
             )
+            probabilities = np.exp(utilities[index] - log_denominator)
+            probability_covariance = np.diag(probabilities) - np.outer(probabilities, probabilities)
             information += design[index].T @ probability_covariance @ design[index]
         information = (information + information.T) / 2.0
         information_rank = int(np.linalg.matrix_rank(information))
@@ -302,12 +375,8 @@ class ConditionalLogit:
             p_values = np.full(len(parameters), np.nan)
 
         params = pd.Series(parameters, index=feature_names, name="estimate")
-        covariance = pd.DataFrame(
-            covariance_values, index=feature_names, columns=feature_names
-        )
-        standard_errors = pd.Series(
-            standard_error_values, index=feature_names, name="std_err"
-        )
+        covariance = pd.DataFrame(covariance_values, index=feature_names, columns=feature_names)
+        standard_errors = pd.Series(standard_error_values, index=feature_names, name="std_err")
         zstats = pd.Series(z_values, index=feature_names, name="z")
         pvalues = pd.Series(p_values, index=feature_names, name="p_value")
         group_sizes = {len(index) for index in group_indices}
@@ -329,4 +398,5 @@ class ConditionalLogit:
             information_rank=information_rank,
             inference_valid=inference_valid,
             optimizer_result=optimizer_result,
+            engine=engine,
         )

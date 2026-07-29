@@ -141,8 +141,8 @@ parity, recovery, uncertainty-coverage, or inferential certification.
   stable root rather than this namespace.
 - Ordinary linear 2SLS `TreatmentEffect` and the iid Gaussian mixture formerly
   called `SwitchingRegression` were extracted from the installed package.
-  Their snapshots remain under `_out_of_scope/` pending migration to causal/IV
-  and mixture/regime packages, respectively.
+  Their snapshots remain under `_out_of_scope/` for archival provenance only;
+  maintained causal/IV and mixture/regime development lives in separate packages.
 - Generalized additive models and ordinary quantile regression are not planned
   for this package merely because they are econometric models. The in-scope
   quantile addition is fixed-boundary `CensoredQuantileRegression`; it remains
