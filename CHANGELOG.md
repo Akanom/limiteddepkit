@@ -7,6 +7,8 @@ pre-release phase.
 
 ## [Unreleased]
 
+## [0.1.0a5] - 2026-07-30
+
 ### Documentation
 
 - Clarified the stable/experimental boundary in the README and scope guides, identified
@@ -20,6 +22,10 @@ pre-release phase.
 - Added one evidence-bounded ecosystem comparison page covering real-data,
   runtime, diagnostics, and cross-software parity for limited-outcome,
   dynamic-panel GMM, and causal treatment-effect workflows.
+- Revalidated the release candidate with pinned R 4.5.1: both legacy
+  eight-family suites passed 110/110 checks and the separate 12-model promoted
+  suite passed 120/120 checks. Preserved Stata records remain historical and
+  are not represented as a fresh Stata execution.
 
 ### Removed
 

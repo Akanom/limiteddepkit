@@ -364,4 +364,4 @@ def test_fitted_metadata_and_root_export_are_available(table):
     compiler.fit(table)
     assert compiler.get_feature_names_out().tolist() == ["age"]
     assert "FactorVariableCompiler" in ldk.__all__
-    assert ldk.__version__ == "0.1.0a4"
+    assert ldk.__version__ == "0.1.0a5"

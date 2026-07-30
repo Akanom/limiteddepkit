@@ -4,7 +4,7 @@ from pathlib import Path
 import limiteddepkit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_VERSION = "0.1.0a4"
+RELEASE_VERSION = "0.1.0a5"
 
 
 def _read(relative_path: str) -> str:
@@ -36,7 +36,13 @@ def test_alpha_classifier_changelog_and_publish_guard_match_the_freeze():
     assert "Development Status :: 3 - Alpha" in pyproject
     assert "Development Status :: 2 - Pre-Alpha" not in pyproject
     assert "currently released" not in citation.lower()
-    assert f"## [{RELEASE_VERSION}] - 2026-07-29" in changelog
+    release_heading = f"## [{RELEASE_VERSION}] - 2026-07-30"
+    assert release_heading in changelog
+    release_notes = changelog.split(release_heading, maxsplit=1)[1].split(
+        "## [0.1.0a4]", maxsplit=1
+    )[0]
+    assert "_out_of_scope/treatment_effect.py" in release_notes
+    assert "moved to CauseKit" in release_notes
     reusable_build = re.search(
         r"uses: Akanom/python-package-governance/\.github/workflows/"
         r"reusable-build\.yml@([0-9a-f]{40})",
