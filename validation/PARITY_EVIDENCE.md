@@ -145,6 +145,33 @@ The complete reproduction and evidence contract is documented in the
 [promoted-family guide](promoted/README.md). Generated data and evidence remain
 ignored by Git and must be archived separately with the repository revision.
 
+## 0.1.0a5 R revalidation
+
+On 30 July 2026, fresh Python references and pinned R 4.5.1 fits were generated
+for the `limiteddepkit` 0.1.0a5 candidate. The controlled eight-family suite
+passed 110/110 checks, the real-data eight-family application passed 110/110,
+and the separate promoted-family application passed 120/120 across all 12
+models. These are bounded comparisons under the registered data, estimands,
+and tolerances; they are not universal equivalence claims.
+
+No Stata command was rerun for this candidate. The prior manual Stata results
+remain historical evidence and are not relabeled as a 0.1.0a5 execution.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Controlled manifest | `bfdd3bb6add9072ce230fb3269dc010cadc386925195f987ed3b080124aa184c` |
+| Controlled R comparison report | `ba68212aa06eef97f65e22082a4f28a819645ef8c7154628603d4536c6f23cd8` |
+| Controlled R comparison summary | `8449fdac6b380510ae5b6b7b43eb9bc51dffd49590efd7a41cfcf09f9886063a` |
+| Controlled R parity certificate | `a37c0ee77954db4d17b26378134b633f738e606c27ca76121487c0bee397c3b8` |
+| Real-data manifest | `1c401fe470995a69bc0b21c1a1143a4b3df48732fe9a17f0ffe68070e684fd03` |
+| Real-data R comparison report | `daeaab12d2ad19dc4845532068c1496f6c10e9e4af3479f4b4d38670b53f6065` |
+| Real-data R comparison summary | `305ccf907fb0fe5cb914af24a078d6e0fb65371ae55be7cc101f1d4aeece61b5` |
+| Real-data R parity certificate | `f8a1acc82f04817e05d39d01f4d071a261298fc750464a9e09692e04a7f1830b` |
+| Promoted-family manifest | `59708daa570907d3efd2be807e1bec5cd9dd2ba3c5e83e877c2b632bb0ea6257` |
+| Promoted R comparison report | `35178a26fa69a222100b829a0c0a99a45ff975386968f9c591e7767575e49833` |
+| Promoted R comparison summary | `a8501fd02dad1b64689436858c92e3134bd4b9f0f74f4020e4f44ea5098083cd` |
+| Promoted R parity certificate | `e4dbad43d086ad7736acac64939cacf308d2a248cfc83c8dd4f08efedcac32c9` |
+
 ## 0.1.0a4 real-data revalidation
 
 On 29 July 2026, the legacy and promoted public-data Python references were

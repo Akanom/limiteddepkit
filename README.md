@@ -31,7 +31,7 @@ The objective is not to collect as many estimators as possible. The objective is
 the observation rule, identification assumptions, prediction target, inferential status,
 and validation evidence visible enough for replication, review, and applied use.
 
-> **Alpha warning:** the current package version is `0.1.0a4`. APIs can change before a
+> **Alpha warning:** the current package version is `0.1.0a5`. APIs can change before a
 > stable release. Validation claims are model- and benchmark-specific; they do not imply
 > universal equivalence across datasets, specifications, optimizers, covariance targets,
 > quadrature rules, or software defaults.
@@ -314,7 +314,7 @@ from limiteddepkit.small_sample import FirthBinaryLogit
 
 Python 3.10 or newer is required. Install the current alpha release from PyPI:
 
-    python -m pip install limiteddepkit==0.1.0a4
+    python -m pip install limiteddepkit==0.1.0a5
 
 For the newest development version, install from a checkout:
 
@@ -1215,6 +1215,11 @@ manual Stata 17 exports and passed 82/82 checks. The Stata command itself was no
 rerun after the opt-in engine change, so this is recorded as a fresh comparison,
 not a new Stata execution.
 
+For `0.1.0a5`, fresh controlled and public-data Python references were fitted
+with pinned R 4.5.1 on 30 July 2026. Both eight-family suites passed 110/110
+registered checks. Stata was not rerun; prior manual Stata results remain
+historical evidence rather than a 0.1.0a5 execution.
+
 Observed maximum absolute differences across the completed reports were:
 
 | Track | Implementation | Estimate | Standard error | Covariance | Log likelihood | Probability |
@@ -1277,6 +1282,10 @@ run on 29 July 2026 and passed 120/120 checks. The current Python references
 also passed 140/140 required comparisons against the preserved manual Stata 17
 exports, with the same predeclared ordinary-Gamma skip. As above, this is a new
 comparison of current Python evidence, not a second Stata execution.
+
+For `0.1.0a5`, fresh Python references and the pinned R 4.5.1 application were
+run on 30 July 2026 and passed 120/120 registered checks across all 12 models.
+No fresh Stata execution was performed for this candidate.
 
 See the [promoted-family application harness](validation/promoted/README.md) and
 [cross-software evidence index](validation/PARITY_EVIDENCE.md) for the model map,
@@ -1451,7 +1460,7 @@ Akanbi, Oluwajuwon Mayomi.
 
 limiteddepkit: Limited-dependent-variable models for Python.
 
-Version 0.1.0a4, 2026.
+Version 0.1.0a5, 2026.
 ```
 
 No DOI or archival identifier is asserted before one is assigned. Add the permanent
