@@ -1348,10 +1348,11 @@ The following were deliberately kept outside the installed package:
 - ordinary uncensored quantile regression; and
 - a generic generalized additive model.
 
-The historical 2SLS and mixture sources are retained under `_out_of_scope/` as archival
-snapshots only; their maintained implementations belong in separate causal/IV and
-regime-model packages. Future nonlinear basis support should serve an in-scope outcome
-family rather than create a generic `GAM` label without a limited-response estimand.
+The historical 2SLS snapshot was deleted after migration to CauseKit's maintained IV
+contract. The mixture source remains under `_out_of_scope/` as an archival snapshot for a
+future regime-model package. Future nonlinear basis support should serve an in-scope
+outcome family rather than create a generic `GAM` label without a limited-response
+estimand.
 
 See [Package scope](docs/PACKAGE_SCOPE.md) for the complete keep/extract rationale.
 
