@@ -1,4 +1,4 @@
-"""Real-estimator integration tests for the experimental validation layer."""
+"""Real-estimator integration tests for the stable validation workflow layer."""
 
 from __future__ import annotations
 

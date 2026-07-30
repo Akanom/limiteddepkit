@@ -179,7 +179,7 @@ Controlled certification and real-data application evidence are reported separat
 
 ## 6. Prediction diagnostics complement econometrics
 
-The experimental `limiteddepkit.ml` layer adds leakage-aware splitting,
+The stable `limiteddepkit.ml` workflow layer adds leakage-aware splitting,
 outcome-appropriate scores, calibration, nested model selection, uncertainty-aware
 comparisons, censoring-aware duration diagnostics, and optional external-estimator
 bridges. It evaluates fitted models; it does not relax identification assumptions or turn
@@ -201,12 +201,16 @@ Recent stable promotions include:
 - BUC Fixed-effects Ordered Logit; and
 - Firth Binary Logit with profile penalized-likelihood confidence intervals.
 
-Two research estimators deliberately remain experimental:
+Two panel research estimators deliberately remain experimental:
 
 - `FixedEffectsOrderedProbit`, using unconditional entity effects and a split-panel
   jackknife; and
 - `DynamicFixedEffectsOrderedLogit`, using the restricted four-outcome-history
   conditional estimator of Muris, Raposo, and Vandoros.
+
+Other in-scope provisional families—including ridge estimators, grouped-choice
+models, two-part Poisson models, sample selection, and censored quantile regression—are
+listed under [Experimental Research Estimators](#experimental-research-estimators).
 
 The separate promoted-family application suite now supplies additional Python/R evidence
 for these stable additions. That evidence remains distinct from the earlier eight-family
@@ -462,9 +466,20 @@ print(limiteddepkit.__version__)
 | Exact, grouped, or tail-bounded Gaussian response | `IntervalRegression` | Homoskedastic Gaussian latent response |
 | Integer-period constant hazard | `GeometricDuration` | Not a general time-varying baseline hazard |
 | Parametric continuous duration | Exponential, Weibull, or Gamma | Right censoring and one record per spell |
+| Unordered finite alternatives | Experimental `MultinomialLogit` | IIA; no robust/cluster covariance or separation remedy |
+| One selected alternative per observed choice set | Experimental `ConditionalLogit` | Complete choice sets and choice-set-specific alternatives required |
+| Ordered continuation/stopping process | Experimental `SequentialLogit` | Stage order must represent the data-generating decision sequence |
+| Structural-zero or two-part count process | Experimental ZIP or Hurdle Poisson | No weights, offset/exposure, or robust covariance yet |
+| Outcome observed only after a separate selection equation | Experimental `SampleSelection` | Gaussian homoskedastic FIML; exclusion restrictions remain a research-design decision |
+| Quantile observed through a known censoring boundary | Experimental `CensoredQuantileRegression` | Non-convex optimization and bootstrap-only inference |
+| Pre-specified shrinkage path for an identified low-dimensional design | Experimental Ridge Binary/Ordered Logit | Choose penalties only inside nested CV; covariance remains approximate |
 
 Experimental SPJ Probit and MRV dynamic fixed-effects Logit should be chosen only when
 their narrower panel and identification requirements match the research design.
+
+Predictive ranking never promotes a provisional estimator and never overrides failed
+convergence, inference, identification, or model-specific diagnostic gates. See the
+[selection acceptance matrix](docs/ML_WORKFLOWS.md#selection-acceptance-matrix).
 
 ---
 
@@ -788,6 +803,10 @@ autoregressive coefficient and not automatically causal effects.
 
 Experimental estimators are importable from `limiteddepkit.experimental`. Their APIs and
 inferential contracts can change before promotion.
+
+Some promoted estimators remain importable from this namespace as temporary alpha-series
+compatibility aliases. Those aliases do not make the canonical package-root or focused-
+namespace APIs experimental; new code should use the stable imports documented above.
 
 ## SPJ Fixed-effects Ordered Probit
 

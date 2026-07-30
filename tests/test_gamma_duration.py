@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from scipy.special import gammaincc, gammaln
 
-from limiteddepkit.experimental import GammaDuration
+from limiteddepkit.duration import GammaDuration
 
 
 def test_gamma_duration_fits_and_predicts():

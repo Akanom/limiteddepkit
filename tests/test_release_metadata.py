@@ -97,3 +97,15 @@ def test_documentation_records_completed_benchmark_specific_parity():
     assert "AWAITING MANUAL STATA" not in combined
     assert "PASS_STATA_PARITY" not in combined
     assert "PASS_STATA_COMPARISON" not in combined
+
+
+def test_documentation_distinguishes_stable_workflows_from_compatibility_aliases():
+    readme = _read("README.md")
+    scope = _read("docs/PACKAGE_SCOPE.md")
+    experimental_status = _read("docs/EXPERIMENTAL_MODELS.md")
+
+    assert "The stable `limiteddepkit.ml` workflow layer" in readme
+    assert "The separate stable `limiteddepkit.ml` workflow" in experimental_status
+    assert "Canonical status is defined" in scope
+    assert "The experimental `limiteddepkit.ml`" not in readme
+    assert "The separate experimental `limiteddepkit.ml`" not in experimental_status

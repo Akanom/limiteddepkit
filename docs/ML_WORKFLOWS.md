@@ -158,6 +158,23 @@ the fold evidence and exclude the model from automatic ranking. The selected pri
 metric must also be finite in every fold; for example, ROC AUC cannot rank a validation
 design containing a one-class test fold.
 
+### Selection acceptance matrix
+
+| Goal | Enforced contract | Maintained evidence |
+|---|---|---|
+| Compare like with like | Every candidate replays the same materialized folds and must resolve to one outcome family; quantile candidates must target the same quantile | Shared-split, outcome-family, and quantile-target tests |
+| Reject invalid fits | Every fold must report successful convergence and valid inference; failed or incomplete candidates remain visible but unranked | Eligibility, failed-fit, and incomplete-primary-metric tests |
+| Respect metric direction | Losses are minimized; accuracy, AUC, and concordance are maximized unless the caller explicitly supplies the direction | Metric-direction and one-standard-error tests |
+| Prevent tuning leakage | Candidate choice occurs only on inner folds; preprocessing is refitted inside every inner and outer training partition | Outer-index isolation and transformer-refit tests |
+| Prefer justified simplicity | The one-standard-error rule selects the lowest declared complexity inside the best candidate's one-SE band | Lower- and higher-is-better one-SE tests |
+| Preserve model validity during tuning | A better-scoring candidate that fails econometric eligibility cannot be selected; an outer run remains ineligible if its selected fit fails | Nested invalid-candidate and no-eligible-candidate tests |
+| Keep claims bounded | Predictive selection compares candidates for a declared target; it does not establish causal identification, inferential validity, or promotion to the stable estimator API | Documentation and API-status regression tests |
+
+These are workflow guarantees, not a claim that cross-validation repairs a misspecified
+likelihood, invalid instrument, unsupported panel design, separation, or unidentified
+parameter. Candidate sets, complexity order, primary target, metric direction, and split
+design must be specified before inspecting outer-fold results.
+
 ## Small-sample models and nested tuning
 
 Ordinary `BinaryLogit` remains the stable MLE reference. Stable

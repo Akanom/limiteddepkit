@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from scipy.stats import weibull_min
 
-from limiteddepkit.experimental import WeibullDuration
+from limiteddepkit.duration import WeibullDuration
 
 
 @pytest.mark.validation

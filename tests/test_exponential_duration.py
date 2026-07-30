@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from limiteddepkit.experimental import ExponentialDuration
+from limiteddepkit.duration import ExponentialDuration
 
 
 def test_exponential_duration_fits_and_predicts():

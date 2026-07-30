@@ -30,6 +30,15 @@ class _ConstantBinaryEstimator:
         return _ConstantBinaryResult(float(probability))
 
 
+class _ValidityConfigurableEstimator:
+    def fit(self, X, y, *, probability=0.5, inference_valid=True):
+        del X, y
+        return _ConstantBinaryResult(
+            float(probability),
+            inference_valid=bool(inference_valid),
+        )
+
+
 def _balanced_data():
     X = pd.DataFrame({"constant": np.ones(36), "row": np.arange(36)})
     y = np.tile([0, 1], 18)
@@ -110,6 +119,62 @@ def test_nested_cv_best_rule_keeps_outer_test_rows_out_of_inner_comparison():
     assert result.summary_frame().loc["log_loss", "mean"] == pytest.approx(
         np.log(2.0)
     )
+
+
+@pytest.mark.parametrize("selection_rule", ["best", "one_se"])
+def test_nested_cv_never_selects_a_better_scoring_invalid_candidate(selection_rule):
+    X, y = _balanced_data()
+    result = nested_cross_validate(
+        {
+            "invalid_better_score": TuningCandidate(
+                _ValidityConfigurableEstimator,
+                fit_kwargs={"probability": 0.5, "inference_valid": False},
+                complexity=0.0,
+            ),
+            "valid": TuningCandidate(
+                _ValidityConfigurableEstimator,
+                fit_kwargs={"probability": 0.65, "inference_valid": True},
+                complexity=1.0,
+            ),
+        },
+        X,
+        y,
+        outer_splitter=StratifiedKFold(3, shuffle=True, random_state=30),
+        inner_splitter_factory=lambda: StratifiedKFold(
+            2, shuffle=True, random_state=31
+        ),
+        outcome="binary",
+        primary_metric="log_loss",
+        selection_rule=selection_rule,
+    )
+
+    assert result.selected_models == ("valid",) * 3
+    assert result.eligible
+    for selection in result.selections:
+        table = selection.inner_comparison.table.set_index("model")
+        assert not bool(table.loc["invalid_better_score", "eligible"])
+        assert pd.isna(table.loc["invalid_better_score", "rank"])
+
+
+@pytest.mark.parametrize("selection_rule", ["best", "one_se"])
+def test_nested_cv_refuses_to_select_when_every_candidate_is_invalid(selection_rule):
+    X, y = _balanced_data()
+    with pytest.raises(ValueError, match="eligible"):
+        nested_cross_validate(
+            {
+                "invalid": TuningCandidate(
+                    _ValidityConfigurableEstimator,
+                    fit_kwargs={"inference_valid": False},
+                    complexity=0.0,
+                )
+            },
+            X,
+            y,
+            outer_splitter=StratifiedKFold(3),
+            inner_splitter_factory=lambda: StratifiedKFold(2),
+            outcome="binary",
+            selection_rule=selection_rule,
+        )
 
 
 def test_nested_cv_rejects_non_nested_or_ambiguous_splitter_contracts():

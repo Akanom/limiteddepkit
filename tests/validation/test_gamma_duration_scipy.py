@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from scipy.stats import gamma
 
-from limiteddepkit.experimental import GammaDuration
+from limiteddepkit.duration import GammaDuration
 
 
 @pytest.mark.validation

@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 import limiteddepkit.poisson as poisson_module
-from limiteddepkit.experimental import PoissonRegressor
+from limiteddepkit.count import PoissonRegressor
 
 
 def test_poisson_regressor_fits_and_predicts_counts():

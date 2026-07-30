@@ -22,7 +22,7 @@ Passing these tests does not promote a model automatically. Promotion also
 requires a settled shared result contract, documented failure modes, broader
 covariance choices where relevant, and a deliberate compatibility decision.
 
-The separate experimental `limiteddepkit.ml` workflow can cross-validate these
+The separate stable `limiteddepkit.ml` workflow can cross-validate these
 families with outcome-appropriate scores. Predictive evidence does not promote
 an estimator or replace likelihood, inference, recovery, and cross-software
 validation; see [Probability-aware validation workflows](ML_WORKFLOWS.md).

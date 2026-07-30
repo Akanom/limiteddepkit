@@ -1,4 +1,4 @@
-"""External-reference validation for the experimental ML workflow layer."""
+"""External-reference validation for the stable ML workflow layer."""
 
 import numpy as np
 import pandas as pd
