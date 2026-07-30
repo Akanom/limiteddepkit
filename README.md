@@ -36,6 +36,14 @@ and validation evidence visible enough for replication, review, and applied use.
 > universal equivalence across datasets, specifications, optimizers, covariance targets,
 > quadrature rules, or software defaults.
 
+## Public runnable example
+
+Run the public [limiteddepkit Kaggle quickstart](https://www.kaggle.com/code/akanom/limiteddepkit)
+to explore deterministic binary, ordinal, grouped-choice, count, censoring,
+interval-regression, duration, Firth-logit, OutputHub, and stratified-validation
+workflows. The notebook is a reproducible cloud demonstration, not a
+cross-software parity certificate or universal estimator benchmark.
+
 ## Controlled performance mode
 
 Poisson keeps its validated execution path as the default. Large or repeated
