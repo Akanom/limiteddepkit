@@ -13,6 +13,12 @@ pre-release phase.
   runtime, diagnostics, and cross-software parity for limited-outcome,
   dynamic-panel GMM, and causal treatment-effect workflows.
 
+### Removed
+
+- Deleted the archived `_out_of_scope/treatment_effect.py` implementation and its stale
+  test after the maintained IV contract moved to CauseKit. LimitedDepKit no longer carries
+  an executable or archival causal/IV estimator.
+
 ## [0.1.0a4] - 2026-07-29
 
 ### Added
