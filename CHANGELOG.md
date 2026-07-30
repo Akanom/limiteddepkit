@@ -9,6 +9,14 @@ pre-release phase.
 
 ### Documentation
 
+- Clarified the stable/experimental boundary in the README and scope guides, identified
+  promoted names under `limiteddepkit.experimental` as temporary compatibility aliases,
+  and aligned promoted-family validation imports with their canonical stable namespaces.
+- Corrected stale descriptions of `limiteddepkit.ml`; the workflow layer is stable even
+  when it evaluates provisional estimators.
+- Expanded the model-selection guide across stable and provisional families, documented
+  the selection acceptance matrix, and added nested-CV regression tests proving that
+  better-scoring invalid candidates cannot be selected.
 - Added one evidence-bounded ecosystem comparison page covering real-data,
   runtime, diagnostics, and cross-software parity for limited-outcome,
   dynamic-panel GMM, and causal treatment-effect workflows.

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from limiteddepkit.experimental import NegativeBinomial
+from limiteddepkit.count import NegativeBinomial
 
 
 def test_negative_binomial_fits_and_predicts():

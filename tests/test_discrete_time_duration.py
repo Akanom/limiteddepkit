@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from limiteddepkit.experimental import DiscreteTimeDuration
+from limiteddepkit.duration import DiscreteTimeDuration
 
 
 def test_discrete_time_duration_fits_and_predicts():

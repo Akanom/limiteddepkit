@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import statsmodels.api as sm
 
-from limiteddepkit.experimental import PoissonRegressor
+from limiteddepkit.count import PoissonRegressor
 
 
 @pytest.mark.validation

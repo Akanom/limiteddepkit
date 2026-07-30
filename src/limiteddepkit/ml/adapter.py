@@ -1,4 +1,4 @@
-"""Result adaptation for the experimental limited-outcome ML workflow layer."""
+"""Result adaptation for the stable limited-outcome ML workflow layer."""
 
 from __future__ import annotations
 

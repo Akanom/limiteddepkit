@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import statsmodels.api as sm
 
-from limiteddepkit.experimental import DiscreteTimeDuration
+from limiteddepkit.duration import DiscreteTimeDuration
 
 
 @pytest.mark.validation

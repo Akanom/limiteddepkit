@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from limiteddepkit.experimental import WeibullDuration
+from limiteddepkit.duration import WeibullDuration
 
 
 def test_weibull_duration_fits_and_predicts():

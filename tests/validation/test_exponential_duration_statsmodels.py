@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 import statsmodels.api as sm
 
-from limiteddepkit.experimental import ExponentialDuration
+from limiteddepkit.duration import ExponentialDuration
 
 
 @pytest.mark.validation

@@ -22,6 +22,11 @@ The stable root exports the families that have completed their promotion gate:
 The ordinal stack additionally retains plotting, simulation, posterior panel
 prediction, and Output Hub integration.
 
+During the alpha series, some promoted names remain available from
+`limiteddepkit.experimental` as backward-compatible aliases. Canonical status is defined
+by the package-root and focused-namespace exports above, not by the continued presence of
+an alias in the compatibility namespace. New code should use the stable import path.
+
 ## Retained under `limiteddepkit.experimental`
 
 These families are in scope but retain provisional APIs:
