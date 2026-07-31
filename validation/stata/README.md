@@ -153,12 +153,13 @@ certificate. Panel references separately record optimizer tolerance `1e-12`.
 
 ### Step 2 — run Stata manually
 
-Use an absolute path, forward slashes, and quotes. Quotes matter when the
-repository path contains spaces.
+Set `repo_root` to the absolute path of your clone. Use forward slashes and
+quotes; quotes matter when the repository path contains spaces.
 
 ```stata
-do "C:/Users/omoko/OneDrive/Python packages/limiteddepkit/validation/stata/limiteddepkit_parity.do" ///
-   "C:/Users/omoko/OneDrive/Python packages/limiteddepkit/validation/stata/work"
+local repo_root "C:/path/to/limiteddepkit"
+do "`repo_root'/validation/stata/limiteddepkit_parity.do" ///
+   "`repo_root'/validation/stata/work"
 ```
 
 If Step 1 used a custom output directory, pass that exact directory as the
@@ -223,8 +224,9 @@ python validation/stata/prepare_real_data.py --source-dir "D:/validated-data/sta
 For the default work directory:
 
 ```stata
-do "C:/Users/omoko/OneDrive/Python packages/limiteddepkit/validation/stata/limiteddepkit_real_data.do" ///
-   "C:/Users/omoko/OneDrive/Python packages/limiteddepkit/validation/stata/work/real_data"
+local repo_root "C:/path/to/limiteddepkit"
+do "`repo_root'/validation/stata/limiteddepkit_real_data.do" ///
+   "`repo_root'/validation/stata/work/real_data"
 ```
 
 This do-file reads only the analysis-ready `.dta` files produced by Python. It
