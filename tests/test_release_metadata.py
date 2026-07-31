@@ -105,6 +105,15 @@ def test_documentation_records_completed_benchmark_specific_parity():
     assert "PASS_STATA_COMPARISON" not in combined
 
 
+def test_stata_documentation_uses_parameterized_clone_paths():
+    parity_guide = _read("validation/stata/README.md")
+
+    assert re.search(r"[A-Za-z]:[/\\]+Users[/\\]+", parity_guide) is None
+    assert parity_guide.count('local repo_root "C:/path/to/limiteddepkit"') == 2
+    assert "`repo_root'/validation/stata/limiteddepkit_parity.do" in parity_guide
+    assert "`repo_root'/validation/stata/limiteddepkit_real_data.do" in parity_guide
+
+
 def test_documentation_distinguishes_stable_workflows_from_compatibility_aliases():
     readme = _read("README.md")
     scope = _read("docs/PACKAGE_SCOPE.md")
