@@ -66,7 +66,7 @@ dev = [
   "scikit-learn>=1.4,<2",
   "statsmodels>=0.14,<1",
   "tomli>=2,<3; python_version < '3.11'",
-  "twine>=5,<7",
+  "twine>=5,<8",
   "universal-output-hub>=0.2.2,<1",
 ]
 validation = ["scikit-learn>=1.4,<2", "statsmodels>=0.14,<1"]
