@@ -32,7 +32,7 @@ jobs:
           python -m venv release-smoke
           release-smoke/bin/python -m pip install --only-binary=:all: dist/*.whl
           release-smoke/bin/python scripts/release_smoke.py --expected-version "$package_version"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-distributions
           path: |
